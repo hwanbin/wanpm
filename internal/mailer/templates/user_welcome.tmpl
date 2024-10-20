@@ -1,0 +1,47 @@
+{{define "subject"}}Welcome to Wanpm!{{end}}
+
+{{define "plainBody"}}
+Hi,
+
+Thanks for signing up for a Wanpm account. We're excited to have you on board!
+
+To activate your Wanpm account please visit https://example.com/user/activate and enter the following code:
+
+--------------------------
+{{.activationToken}}
+--------------------------
+
+Or click the following link:
+
+https://example.com/users/activate?token={{.activationToken}}
+
+
+Please note that this is a one-time use token and it will expire in 3 days.
+
+Thanks,
+
+The Wanpm Team
+{{end}}
+
+{{define "htmlBody"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+    <p>Hi,</p>
+    <p>Thanks for signing up for a Wanpm account. We're excited to have you on board!</p>   
+    <p>To activate your Wanpm account please visit <a href="https://example.com/user/activate">Us</a> and enter the following code:</p>
+    <pre>
+        <code>{{.activationToken}}</code>
+    </pre>
+    <p>Or click the following link</p>
+    <a href="https://example.com/users/activate?token={{.activationToken}}">Activate your account</a>
+    <p>Please note that this is a one-time use token and it will expire in 3 days.</p>
+    <p>Thanks,</p>
+    <p>The Wanpm Team</p>
+</body>
+</html>
+{{end}}
