@@ -52,7 +52,7 @@ jobs:
             echo "image_exists=true" >> $GITHUB_ENV
           else
             echo "image_exists=false" >> $GITHUB_ENV
-          if
+          fi
       - name: Delete Old Image
         if: env.image_exists == 'true'
         run: docker rmi ${{ env.DOCKER_IMAGE }}:0.0.1
