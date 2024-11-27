@@ -9,8 +9,10 @@ import (
 	"sync"
 	"time"
 
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/hwanbin/wanpm-api/internal/data"
-	"github.com/hwanbin/wanpm-api/internal/mailer"
 	_ "github.com/lib/pq"
 )
 
@@ -30,21 +32,24 @@ type config struct {
 		burst   int
 		enabled bool
 	}
-	smtp struct {
-		host     string
-		port     int
-		username string
-		password string
-		sender   string
+	s3 struct {
+		profile string
+		bucket  string
 	}
 }
 
+type s3Actor struct {
+	client        *s3.Client
+	presignClient *s3.PresignClient
+	uploader      *manager.Uploader
+}
+
 type application struct {
-	config config
-	logger *slog.Logger
-	models data.Models
-	mailer mailer.Mailer
-	wg     sync.WaitGroup
+	config  config
+	logger  *slog.Logger
+	models  data.Models
+	s3actor s3Actor
+	wg      sync.WaitGroup
 }
 
 func main() {
@@ -63,15 +68,8 @@ func main() {
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
-	// flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
-	// flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
-	// flag.StringVar(&cfg.smtp.username, "smtp-username", "3551e26c83f44c", "SMTP username")
-	// flag.StringVar(&cfg.smtp.password, "smtp-password", "4fb037de7df785", "SMTP password")
-	flag.StringVar(&cfg.smtp.host, "smtp-host", "192.168.2.15", "SMTP host")
-	flag.IntVar(&cfg.smtp.port, "smtp-port", 1025, "SMTP port")
-	flag.StringVar(&cfg.smtp.username, "smtp-username", "", "SMTP username")
-	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Wanpm <no-reply@wanpm.com>", "SMTP sender")
+	flag.StringVar(&cfg.s3.profile, "s3-profile", "s3_profile", "S3 profile")
+	flag.StringVar(&cfg.s3.bucket, "s3-bucket", os.Getenv("S3_BUCKET_NAME"), "S3 bucket name")
 
 	flag.Parse()
 
@@ -87,11 +85,19 @@ func main() {
 
 	logger.Info("database connection pool established")
 
+	s3actor, err := initS3(cfg)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	logger.Info("s3 actor initialized")
+
 	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
-		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		config:  cfg,
+		logger:  logger,
+		models:  data.NewModels(db),
+		s3actor: s3actor,
 	}
 
 	err = app.serve()
@@ -121,4 +127,24 @@ func openDB(cfg config) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func initS3(cfg config) (s3Actor, error) {
+	s3Cfg, err := awsConfig.LoadDefaultConfig(
+		context.Background(),
+		awsConfig.WithSharedConfigProfile(cfg.s3.profile),
+	)
+	if err != nil {
+		return s3Actor{}, err
+	}
+
+	client := s3.NewFromConfig(s3Cfg)
+	uploader := manager.NewUploader(client)
+	presignClient := s3.NewPresignClient(client)
+
+	return s3Actor{
+		client:        client,
+		uploader:      uploader,
+		presignClient: presignClient,
+	}, nil
 }

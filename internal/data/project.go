@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/hwanbin/wanpm-api/internal/s3action"
 	"github.com/hwanbin/wanpm-api/internal/validator"
 	"github.com/lib/pq"
 )
@@ -441,7 +444,7 @@ func (m ProjectModel) Update(project *Project) error {
 	return nil
 }
 
-func (m ProjectModel) Delete(InternalID int32) error {
+func (m ProjectModel) Delete(InternalID int32, bucket, prefix string, client *s3.Client, objects []types.ObjectIdentifier) error {
 	query := `
 		DELETE FROM project
 		WHERE internal_id = $1`
@@ -449,13 +452,37 @@ func (m ProjectModel) Delete(InternalID int32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := m.DB.ExecContext(ctx, query, InternalID)
+	tx, err := m.DB.BeginTx(ctx, nil)
 	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// set type of all prefixed objects as `delete marker` by delete objects
+	err = s3action.DeleteObjects(ctx, client, bucket, objects)
+	if err != nil {
+		restoringErr := s3action.RestoreDeletedObjects(ctx, client, bucket, prefix)
+		if restoringErr != nil {
+			return restoringErr
+		}
+		return err
+	}
+
+	result, err := tx.ExecContext(ctx, query, InternalID)
+	if err != nil {
+		restoringErr := s3action.RestoreDeletedObjects(ctx, client, bucket, prefix)
+		if restoringErr != nil {
+			return restoringErr
+		}
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		restoringErr := s3action.RestoreDeletedObjects(ctx, client, bucket, prefix)
+		if restoringErr != nil {
+			return restoringErr
+		}
 		return err
 	}
 
@@ -463,7 +490,14 @@ func (m ProjectModel) Delete(InternalID int32) error {
 		return ErrRecordNotFound
 	}
 
-	return nil
+	s3action.PermanentlyDeleteObjects(ctx, client, bucket, prefix)
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 type Coordinates [2]float64
