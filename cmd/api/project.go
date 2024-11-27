@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/hwanbin/wanpm-api/internal/data"
+	"github.com/hwanbin/wanpm-api/internal/s3action"
 	"github.com/hwanbin/wanpm-api/internal/validator"
 )
 
@@ -234,7 +236,32 @@ func (app *application) deleteProjectHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.models.Project.Delete(project.InternalID)
+	var objects []types.ObjectIdentifier
+	fileNames, err := s3action.ListObjects(
+		app.s3actor.client,
+		app.config.s3.bucket,
+		strconv.Itoa(int(externalID)),
+	)
+	for _, fileName := range fileNames {
+		objects = append(
+			objects,
+			types.ObjectIdentifier{
+				Key: &fileName,
+			},
+		)
+	}
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.models.Project.Delete(
+		project.InternalID,
+		app.config.s3.bucket,
+		strconv.Itoa(int(externalID)),
+		app.s3actor.client,
+		objects,
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -248,6 +275,7 @@ func (app *application) deleteProjectHandler(w http.ResponseWriter, r *http.Requ
 	err = app.writeJSON(w, http.StatusOK, envelope{"message": "project successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
+		return
 	}
 }
 

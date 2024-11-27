@@ -22,18 +22,6 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/project/:id", app.updateProjectHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/project/:id", app.deleteProjectHandler)
 
-	// router.HandlerFunc(http.MethodGet, "/v1/project", app.requireActivatedUser(app.listProjectHandler))
-	// router.HandlerFunc(http.MethodPost, "/v1/project", app.requireActivatedUser(app.createProjectHandler))
-	// router.HandlerFunc(http.MethodGet, "/v1/project/:id", app.requireActivatedUser(app.showProjectHandler))
-	// router.HandlerFunc(http.MethodPatch, "/v1/project/:id", app.requireActivatedUser(app.updateProjectHandler))
-	// router.HandlerFunc(http.MethodDelete, "/v1/project/:id", app.requireActivatedUser(app.deleteProjectHandler))
-
-	// router.HandlerFunc(http.MethodGet, "/v1/project", app.requirePermission("project:read", app.listProjectHandler))
-	// router.HandlerFunc(http.MethodPost, "/v1/project", app.requirePermission("project:write", app.createProjectHandler))
-	// router.HandlerFunc(http.MethodGet, "/v1/project/:id", app.requirePermission("project:read", app.showProjectHandler))
-	// router.HandlerFunc(http.MethodPatch, "/v1/project/:id", app.requirePermission("project:write", app.updateProjectHandler))
-	// router.HandlerFunc(http.MethodDelete, "/v1/project/:id", app.requirePermission("project:write", app.deleteProjectHandler))
-
 	router.HandlerFunc(http.MethodGet, "/v1/client", app.listClientHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/client", app.createClientHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/client/:id", app.showClientHandler)
@@ -45,12 +33,11 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/proposal/:id", app.updateProposalHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/proposal/:id", app.deleteProposalHandler)
 
-	router.HandlerFunc(http.MethodPost, "/v1/user", app.registerUserHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/user/activate", app.activateUserHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/presigned-put", app.createPresignedPutUrlHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/presigned-get", app.createPresignedGetUrlHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/presigned-delete", app.createPresignedDeleteUrlHandler)
 
-	router.HandlerFunc(http.MethodPost, "/v1/token/authentication", app.createAuthenticationTokenHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/list-files", app.listFilesWithPrefixHandler)
 
-	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
-	// return app.recoverPanic(app.rateLimit(app.authenticate(router)))
-	// return app.recoverPanic(app.rateLimit(router))
+	return app.recoverPanic(app.enableCORS(app.rateLimit(router)))
 }

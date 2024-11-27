@@ -138,22 +138,6 @@ func (app *application) readCSV(qs url.Values, key string, defaultValue []string
 	return strings.Split(csv, ",")
 }
 
-// func (app *application) readPageSize(qs url.Values, defaultValue int, v *validator.Validator) any {
-// 	s := qs.Get("page_size")
-
-// 	if s == "" {
-// 		return "ALL"
-// 	}
-
-// 	i, err := strconv.Atoi(s)
-// 	if err != nil {
-// 		v.AddError("page_size", "must be an integer value")
-// 		return defaultValue
-// 	}
-
-// 	return i
-// }
-
 func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
 	s := qs.Get(key)
 
@@ -168,26 +152,4 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	}
 
 	return i
-}
-
-// The background() helper accepts an arbitrary function as a parameter.
-func (app *application) background(fn func()) {
-	// Increment the WaitGroup counter.
-	app.wg.Add(1)
-
-	// Launch a background goroutine.
-	go func() {
-		// Use defer to decrement the WaitGroup counter before the goroutine returns.
-		defer app.wg.Done()
-
-		// Recover any panic.
-		defer func() {
-			if err := recover(); err != nil {
-				app.logger.Error(fmt.Sprintf("%v", err))
-			}
-		}()
-
-		// Execute the arbitrary function that passed in as the parameter.
-		fn()
-	}()
 }
