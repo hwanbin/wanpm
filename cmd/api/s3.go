@@ -24,7 +24,7 @@ func (app *application) createPresignedPutUrlHandler(w http.ResponseWriter, r *h
 	request, err := presigner.PresignPutObject(
 		context.Background(),
 		&s3.PutObjectInput{
-			Bucket: aws.String("wantoni-image-bucket"),
+			Bucket: aws.String(app.config.s3.bucket),
 			Key:    aws.String(fileName),
 		}, func(opts *s3.PresignOptions) {
 			opts.Expires = time.Duration(lifetimeSecs) * time.Second
@@ -53,7 +53,7 @@ func (app *application) createPresignedGetUrlHandler(w http.ResponseWriter, r *h
 	request, err := presigner.PresignGetObject(
 		context.Background(),
 		&s3.GetObjectInput{
-			Bucket: aws.String("wantoni-image-bucket"),
+			Bucket: aws.String(app.config.s3.bucket),
 			Key:    aws.String(fileName),
 		}, func(opts *s3.PresignOptions) {
 			opts.Expires = time.Duration(lifetimeSecs) * time.Second
@@ -82,7 +82,7 @@ func (app *application) createPresignedDeleteUrlHandler(w http.ResponseWriter, r
 	request, err := presigner.PresignDeleteObject(
 		context.Background(),
 		&s3.DeleteObjectInput{
-			Bucket: aws.String("wantoni-image-bucket"),
+			Bucket: aws.String(app.config.s3.bucket),
 			Key:    aws.String(fileName),
 		}, func(opts *s3.PresignOptions) {
 			opts.Expires = time.Duration(lifetimeSecs) * time.Second
