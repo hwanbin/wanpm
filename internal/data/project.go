@@ -36,34 +36,52 @@ type ProjectClient struct {
 }
 
 type ProjectInput struct {
-	ExternalID  *int32    `json:"project_id"`
-	ProposalID  *string   `json:"proposal_id"`
-	Name        *string   `json:"name"`
-	Status      *string   `json:"status"`
-	Coordinates []float64 `json:"coordinates"`
-	Images      []string  `json:"images"`
-	ClientNames []string  `json:"client_names"`
+	ExternalID  *int32   `json:"project_id"`
+	ProposalID  *string  `json:"proposal_id"`
+	Name        *string  `json:"name"`
+	Status      *string  `json:"status"`
+	Feature     *Feature `json:"feature"`
+	Images      []string `json:"images"`
+	ClientNames []string `json:"client_names"`
 }
 
-type Project struct {
-	InternalID  int32           `json:"-"`
-	ExternalID  *int32          `json:"project_id"`
-	ProposalID  *string         `json:"proposal_id"`
-	Name        *string         `json:"name"`
-	Status      *string         `json:"status"`
-	Coordinates []float64       `json:"coordinates"`
-	Images      []string        `json:"images"`
-	Clients     []ProjectClient `json:"clients"`
-	Version     int32           `json:"version"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+type ProjectRequest struct {
+	InternalID int32           `json:"-"`
+	ExternalID *int32          `json:"project_id"`
+	ProposalID *string         `json:"proposal_id"`
+	Name       *string         `json:"name"`
+	Status     *string         `json:"status"`
+	Feature    *string         `json:"feature"`
+	Images     []string        `json:"images"`
+	Clients    []ProjectClient `json:"clients"`
+	Version    int32           `json:"version"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
+}
+
+type ProjectResponse struct {
+	InternalID int32           `json:"-"`
+	ExternalID *int32          `json:"project_id"`
+	ProposalID *string         `json:"proposal_id"`
+	Name       *string         `json:"name"`
+	Status     *string         `json:"status"`
+	Feature    *Feature        `json:"feature"`
+	Images     []string        `json:"images"`
+	Clients    []ProjectClient `json:"clients"`
+	Version    int32           `json:"version"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
 }
 
 type ProjectQsInput struct {
-	Name    string
-	Status  string
-	Clients []string
-	Bbox    []string
+	Name        string
+	Status      string
+	ProposalId  string
+	ProjectId   string
+	FullAddress string
+	ClientName  string
+	Clients     []string
+	Bbox        []string
 	Filters
 }
 
@@ -82,27 +100,35 @@ func ValidateProjectInputRequired(v *validator.Validator, p *ProjectInput) {
 }
 
 func ValidateProjectInputSemantic(v *validator.Validator, p *ProjectInput) {
+	if p.Feature != nil {
+		v.Check(p.Feature.IsValidFeature(), "feature", "must be valid feature json")
+
+		if !p.Feature.IsEmptyFeature() {
+			v.Check(p.Feature.IsValidFeatureType(), "feat_type", "must be 'Feature' type")
+			v.Check(p.Feature.IsValidPointGeometryType(), "geom_type", "must be 'Point' type")
+			v.Check(p.Feature.IsValidPointGeometryCoordinates(), "geom_coords", "must be a lng, lat pair")
+			if len(p.Feature.Geometry.Coordinates) == 2 {
+				v.Check(p.Feature.IsValidLongitude(), "geom_coords_lng", "longitude must be in between -180 and 180")
+				v.Check(p.Feature.IsValidLatitude(), "geom_coords_lat", "latitude must be in between -90 and 90")
+			}
+			v.Check(p.Feature.IsValidPropertiesName(), "props_name", "invalid or missing 'name' field")
+			v.Check(p.Feature.IsValidPropertiesFullAddress(), "props_full_addr", "invalid or missing 'full_address' field")
+		}
+	}
+
 	v.Check(*p.ExternalID > 0, "project_id", "must be a positive integer")
 
-	v.Check(*p.ProposalID != "", "proposal_id", "must not be empty string")
+	v.Check(*p.ProposalID != "", "proposal_id", "must not be an empty string")
 	v.Check(len(*p.ProposalID) <= 10, "proposal_id", "must not be more than 10 bytes long")
 
-	v.Check(*p.Name != "", "name", "must not be empty string")
+	v.Check(*p.Name != "", "name", "must not be an empty string")
 	v.Check(len(*p.Name) <= 500, "name", "must not be more than 500 bytes long")
 
-	v.Check(*p.Status != "", "status", "must not be empty string")
+	v.Check(*p.Status != "", "status", "must not be an empty string")
 	v.Check(len(*p.Status) <= 100, "status", "must not be more than 100 bytes long")
 
 	v.Check(len(p.ClientNames) >= 1, "client_names", "must contain at least 1 client")
 	v.Check(validator.Unique(p.ClientNames), "client_names", "must not contain duplicate values")
-
-	if p.Coordinates != nil {
-		v.Check(len(p.Coordinates) == 2, "coordinates", "must be a longitude, latitude pair")
-		if len(p.Coordinates) == 2 {
-			v.Check(p.Coordinates[0] >= -180 && p.Coordinates[0] <= 180, "coordinates", "longitude must be in between -180 and 180")
-			v.Check(p.Coordinates[1] >= -90 && p.Coordinates[1] <= 90, "coordinates", "latitude must be in between -90 and 90")
-		}
-	}
 
 	if p.Images != nil {
 		v.Check(len(p.Images) >= 1, "images", "must contain at least 1 image")
@@ -135,11 +161,22 @@ func ValidateUpdatingProjectInput(v *validator.Validator, p *ProjectInput) {
 		v.Check(validator.Unique(p.ClientNames), "client_names", "must not contain duplicate values")
 	}
 
-	if len(p.Coordinates) > 0 {
-		v.Check(len(p.Coordinates) == 2, "coordinates", "must be a longitude, latitude pair")
-		if len(p.Coordinates) == 2 {
-			v.Check(p.Coordinates[0] >= -180 && p.Coordinates[0] <= 180, "coordinates", "longitude must be in between -180 and 180")
-			v.Check(p.Coordinates[1] >= -90 && p.Coordinates[1] <= 90, "coordinates", "latitude must be in between -90 and 90")
+	if p.Feature != nil {
+		// v.Check(!p.Feature.IsEmptyFeature(), "feature", "must be valid feature json")
+		v.Check(p.Feature.IsValidFeature(), "feature", "must be valid feature json")
+
+		if !p.Feature.IsEmptyFeature() {
+			v.Check(p.Feature.IsValidFeatureType(), "feat_type", "must be 'Feature' type")
+			v.Check(p.Feature.IsValidPointGeometryType(), "geom_type", "must be 'Point' type")
+			v.Check(p.Feature.IsValidPointGeometryCoordinates(), "geom_coords", "must be a lng, lat pair")
+			if len(p.Feature.Geometry.Coordinates) == 2 {
+				v.Check(p.Feature.IsValidLongitude(), "geom_coords_lng", "longitude must be in between -180 and 180")
+				v.Check(p.Feature.IsValidLatitude(), "geom_coords_lat", "latitude must be in between -90 and 90")
+			}
+			v.Check(p.Feature.IsValidPropertiesName(), "props_name", "invalid or missing 'name' field")
+			v.Check(p.Feature.IsValidPropertiesFullAddress(), "props_full_addr", "invalid or missing 'full_address' field")
+		} else {
+			p.Feature = nil
 		}
 	}
 
@@ -148,7 +185,7 @@ func ValidateUpdatingProjectInput(v *validator.Validator, p *ProjectInput) {
 	}
 }
 
-func ValidateProject(v *validator.Validator, p *Project) {
+func ValidateProject(v *validator.Validator, p *ProjectRequest) {
 	v.Check(p.ProposalID != nil, "proposal_id", "must be provided")
 	if p.ProposalID != nil {
 		v.Check(*p.ProposalID != "", "proposal_id", "must not be empty string")
@@ -173,11 +210,11 @@ func ValidateProject(v *validator.Validator, p *Project) {
 		v.Check(len(*p.Status) <= 100, "status", "must not be more than 100 bytes long")
 	}
 
-	// v.Check(p.Coordinates != nil, "coordinates", "must be provided")
-	if p.Coordinates != nil {
-		// when below compare equals false then put it int the error bag
-		v.Check(len(p.Coordinates) == 2, "coordinates", "must be a longitude, latitude pair")
-	}
+	// // v.Check(p.Coordinates != nil, "coordinates", "must be provided")
+	// if p.Coordinates != nil {
+	// 	// when below compare equals false then put it int the error bag
+	// 	v.Check(len(p.Coordinates) == 2, "coordinates", "must be a longitude, latitude pair")
+	// }
 
 	if p.Images != nil {
 		v.Check(len(p.Images) >= 1, "images", "must contain at least 1 image")
@@ -195,22 +232,17 @@ type ProjectModel struct {
 	DB *sql.DB
 }
 
-func (m ProjectModel) Insert(project *Project) error {
-	geomText := "POINT EMPTY"
-	if project.Coordinates != nil {
-		geomText = fmt.Sprintf("POINT(%f %f)", project.Coordinates[0], project.Coordinates[1])
-	}
+func (m ProjectModel) Insert(project *ProjectRequest) error {
 	query := `
-		INSERT INTO project (project_id, proposal_id, name, status, coordinates, images)
-		VALUES ($1, $2, $3, $4, ST_GeomFromText($5, 4326), $6)
+		INSERT INTO project (project_id, proposal_id, name, status, feature, images)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING internal_id, version, created_at, updated_at`
-
 	args := []any{
 		project.ExternalID,
 		project.ProposalID,
 		project.Name,
 		project.Status,
-		geomText,
+		project.Feature,
 		pq.Array(project.Images),
 	}
 
@@ -280,17 +312,13 @@ func (m ProjectModel) Insert(project *Project) error {
 	return nil
 }
 
-func (m ProjectModel) Get(externalID int32) (*Project, error) {
+func (m ProjectModel) Get(externalID int32) (*ProjectResponse, error) {
 	if externalID < 1 {
 		return nil, ErrRecordNotFound
 	}
 
 	query := `
-		SELECT p.internal_id, p.project_id, p.proposal_id, p.name, p.status, 
-		CASE 
-			WHEN ST_IsEmpty(p.coordinates) THEN NULL 
-			ELSE array[ST_X(p.coordinates), ST_Y(p.coordinates)] 
-    	END AS coordinates, 
+		SELECT p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature,
 		array_agg(
 			jsonb_build_object(
 				'id', c.internal_id, 
@@ -307,9 +335,10 @@ func (m ProjectModel) Get(externalID int32) (*Project, error) {
 		LEFT JOIN project_client pc ON p.internal_id = pc.project_internal_id
 		LEFT JOIN client c ON pc.client_internal_id = c.internal_id
 		WHERE p.project_id = $1
-		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.coordinates, p.images, p.version, p.created_at, p.updated_at`
+		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature, p.images, p.version, p.created_at, p.updated_at`
 
-	var project Project
+	var project ProjectResponse
+	var projectFeature string
 	var clients []string
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -321,23 +350,13 @@ func (m ProjectModel) Get(externalID int32) (*Project, error) {
 		&project.ProposalID,
 		&project.Name,
 		&project.Status,
-		pq.Array(&project.Coordinates),
+		&projectFeature,
 		pq.Array(&clients),
 		pq.Array(&project.Images),
 		&project.Version,
 		&project.CreatedAt,
 		&project.UpdatedAt,
 	)
-
-	for _, client := range clients {
-		var pc ProjectClient
-		_ = json.Unmarshal([]byte(client), &pc)
-		if pc.ClientID == nil {
-			project.Clients = nil
-			break
-		}
-		project.Clients = append(project.Clients, pc)
-	}
 
 	if err != nil {
 		switch {
@@ -348,21 +367,31 @@ func (m ProjectModel) Get(externalID int32) (*Project, error) {
 		}
 	}
 
+	err = json.Unmarshal([]byte(projectFeature), &project.Feature)
+	if err != nil {
+		return nil, errors.New("failed to unmarshal feature")
+	}
+
+	for _, client := range clients {
+		var pc ProjectClient
+		err = json.Unmarshal([]byte(client), &pc)
+		if err != nil {
+			return nil, errors.New("failed to unmarshal clients associated with the project")
+		}
+		if pc.ClientID == nil {
+			project.Clients = nil
+			break
+		}
+		project.Clients = append(project.Clients, pc)
+	}
+
 	return &project, nil
 }
 
-func (m ProjectModel) Update(project *Project) error {
-	geomText := "POINT EMPTY"
-	if project.Coordinates != nil {
-		geomText = fmt.Sprintf("POINT(%f %f)", project.Coordinates[0], project.Coordinates[1])
-	}
-	if len(project.Images) == 0 {
-		project.Images = nil
-	}
-
+func (m ProjectModel) Update(project *ProjectRequest) error {
 	query := `
 		UPDATE project
-		SET project_id = $1, proposal_id = $2, name = $3, status = $4, coordinates = ST_GeomFromText($5, 4326), images = $6, version = version + 1, updated_at = $7
+		SET project_id = $1, proposal_id = $2, name = $3, status = $4, feature = $5, images = $6, version = version + 1, updated_at = $7
 		WHERE internal_id = $8 AND version = $9
 		RETURNING version, created_at, updated_at`
 
@@ -371,7 +400,7 @@ func (m ProjectModel) Update(project *Project) error {
 		project.ProposalID,
 		project.Name,
 		project.Status,
-		geomText,
+		project.Feature,
 		pq.Array(project.Images),
 		time.Now(),
 		project.InternalID,
@@ -410,9 +439,10 @@ func (m ProjectModel) Update(project *Project) error {
 			query += ", "
 		}
 		query += fmt.Sprintf("$%d", i+2)
-		args = append(args, client.ClientID)
+		args = append(args, *client.ClientID)
 	}
 	query += ")"
+
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
@@ -427,10 +457,11 @@ func (m ProjectModel) Update(project *Project) error {
 			query += ", "
 		}
 		query += fmt.Sprintf("($%d, $%d)", i*2+1, i*2+2)
-		args = append(args, project.InternalID, client.ClientID)
+		args = append(args, project.InternalID, *client.ClientID)
 	}
 	query += `
 		ON CONFLICT (project_internal_id, client_internal_id) DO NOTHING`
+
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
@@ -511,12 +542,6 @@ type BoundingBox struct {
 func ConvertToBbox(bboxStrings []string) (BoundingBox, error) {
 	bbox := BoundingBox{}
 
-	// if bboxStrings == nil {
-	// 	return bbox, nil
-	// }
-	// if len(bboxStrings) != 4 {
-	// 	return bbox, ErrInvalidBBoxLength
-	// }
 	if bboxStrings != nil {
 		for i, str := range bboxStrings {
 			f, err := strconv.ParseFloat(str, 64)
@@ -535,13 +560,9 @@ func ConvertToBbox(bboxStrings []string) (BoundingBox, error) {
 	return bbox, nil
 }
 
-func (m ProjectModel) GetAll(name string, status string, clients []string, bbox BoundingBox, filters Filters) ([]*Project, Metadata, error) {
+func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectResponse, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), p.project_id, p.proposal_id, p.name, p.status,
-		CASE
-			WHEN ST_IsEmpty(p.coordinates) THEN NULL
-			ELSE array[ST_X(p.coordinates), ST_Y(p.coordinates)]
-		END AS coordinates,
+		SELECT count(*) OVER(), p.project_id, p.proposal_id, p.name, p.status, p.feature,
 		array_agg(
 			jsonb_build_object(
 				'id', c.internal_id,
@@ -560,37 +581,62 @@ func (m ProjectModel) GetAll(name string, status string, clients []string, bbox 
 		WHERE (
 			( p.name ILIKE '%%' || $1 || '%%' OR $1 = '' )
 			AND
-			( to_tsvector('simple', p.status) @@ plainto_tsquery('simple', $2) or $2 = '' )
+			( p.status ILIKE '%%' || $2 || '%%' OR $2 = '' )
 			AND
 			( ($3::boolean IS FALSE)
 				OR
-				( 
-					NOT ST_IsEmpty(p.coordinates) 
-					AND ST_Within(p.coordinates, st_makeenvelope($4, $5, $6, $7, 4326)) 
+				(
+					jsonb_typeof(p.feature->'geometry'->'coordinates') = 'array'
+					AND jsonb_array_length(p.feature->'geometry'->'coordinates') = 2
+					AND ST_Within(
+						ST_GeomFromGeoJSON(p.feature->'geometry'), 
+						ST_MakeEnvelope($4, $5, $6, $7, 4326)
+					)
+				)
+			)
+			AND
+			( CAST(p.project_id AS TEXT) LIKE '%%' || $8 || '%%' or $8 = '' )
+			AND
+			( p.proposal_id ILIKE '%%' || $9 || '%%' or $9 = '' )
+			AND
+			( p.feature->'properties'->>'full_address' ILIKE '%%' || $10 || '%%' or $10 = '' )
+			AND
+			( p.internal_id IN (
+					SELECT pc.project_internal_id
+					FROM project_client pc
+					WHERE pc.client_internal_id IN (
+						SELECT c.internal_id
+						FROM client c
+						WHERE c.name ILIKE '%%' || $11 || '%%' or $11 = ''
+					)
 				)
 			)
 		)
-		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.coordinates, p.images, p.version, p.created_at, p.updated_at
+		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature, p.images, p.version, p.created_at, p.updated_at
 		ORDER BY %s %s, p.project_id ASC`,
-		filters.sortColumn(), filters.sortDirection())
+		qs.Filters.sortColumn(), qs.Filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	args := []any{
-		name,
-		status,
+		qs.Name,
+		qs.Status,
 		bbox.Valid,
 		bbox.BottomLeft[0],
 		bbox.BottomLeft[1],
 		bbox.TopRight[0],
 		bbox.TopRight[1],
+		qs.ProjectId,
+		qs.ProposalId,
+		qs.FullAddress,
+		qs.ClientName,
 	}
 
-	if filters.limit() > 0 {
+	if qs.Filters.limit() > 0 {
 		query += `
 			LIMIT $8 OFFSET $9`
-		args = append(args, filters.limit(), filters.offset())
+		args = append(args, qs.Filters.limit(), qs.Filters.offset())
 	}
 
 	rows, err := m.DB.QueryContext(ctx, query, args...)
@@ -601,10 +647,11 @@ func (m ProjectModel) GetAll(name string, status string, clients []string, bbox 
 	defer rows.Close()
 
 	totalRecords := 0
-	projects := []*Project{}
+	projects := []*ProjectResponse{}
 
 	for rows.Next() {
-		var project Project
+		var project ProjectResponse
+		var projectFeature string
 		var clients []string
 
 		err := rows.Scan(
@@ -613,7 +660,7 @@ func (m ProjectModel) GetAll(name string, status string, clients []string, bbox 
 			&project.ProposalID,
 			&project.Name,
 			&project.Status,
-			pq.Array(&project.Coordinates),
+			&projectFeature,
 			pq.Array(&clients),
 			pq.Array(&project.Images),
 			&project.Version,
@@ -624,15 +671,22 @@ func (m ProjectModel) GetAll(name string, status string, clients []string, bbox 
 			return nil, Metadata{}, err
 		}
 
+		err = json.Unmarshal([]byte(projectFeature), &project.Feature)
+		if err != nil {
+			return nil, Metadata{}, errors.New("failed to unmarshal feature")
+		}
+
 		for _, client := range clients {
-			var s ProjectClient
-			//TODO: handle unmarshal error
-			_ = json.Unmarshal([]byte(client), &s)
-			if s.ClientID == nil {
+			var pc ProjectClient
+			err = json.Unmarshal([]byte(client), &pc)
+			if err != nil {
+				return nil, Metadata{}, errors.New("failed to unmarshal clients")
+			}
+			if pc.ClientID == nil {
 				project.Clients = nil
 				break
 			}
-			project.Clients = append(project.Clients, s)
+			project.Clients = append(project.Clients, pc)
 		}
 		projects = append(projects, &project)
 	}
@@ -641,7 +695,7 @@ func (m ProjectModel) GetAll(name string, status string, clients []string, bbox 
 		return nil, Metadata{}, err
 	}
 
-	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	metadata := calculateMetadata(totalRecords, qs.Filters.Page, qs.Filters.PageSize)
 
 	return projects, metadata, nil
 }
