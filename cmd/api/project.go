@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,13 +32,20 @@ func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	project := &data.Project{
-		ExternalID:  input.ExternalID,
-		ProposalID:  input.ProposalID,
-		Name:        input.Name,
-		Status:      input.Status,
-		Coordinates: input.Coordinates,
-		Images:      input.Images,
+	feature, err := json.Marshal(input.Feature)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("failed to marshal feature json: %v", err))
+		return
+	}
+	inputFeature := string(feature)
+
+	project := &data.ProjectRequest{
+		ExternalID: input.ExternalID,
+		ProposalID: input.ProposalID,
+		Name:       input.Name,
+		Status:     input.Status,
+		Feature:    &inputFeature,
+		Images:     input.Images,
 	}
 
 	project.Clients = []data.ProjectClient{}
@@ -77,10 +85,16 @@ func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	headers := make(http.Header)
-	headers.Set("Location", fmt.Sprintf("/v1/project/%d", *project.ExternalID))
+	projectResponse, err := app.models.Project.Get(*project.ExternalID)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to get the project: %v", err))
+		return
+	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"project": project}, headers)
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/project/%d", *projectResponse.ExternalID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"project": projectResponse}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -110,7 +124,7 @@ func (app *application) showProjectHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (app *application) toProject(project *data.Project, input *data.ProjectInput) {
+func (app *application) toProject(project *data.ProjectResponse, input *data.ProjectInput) {
 	if input.ExternalID != nil {
 		project.ExternalID = input.ExternalID
 	}
@@ -127,12 +141,8 @@ func (app *application) toProject(project *data.Project, input *data.ProjectInpu
 		project.Status = input.Status
 	}
 
-	if input.Coordinates != nil {
-		if len(input.Coordinates) == 0 {
-			project.Coordinates = nil
-		} else {
-			project.Coordinates = input.Coordinates
-		}
+	if input.Feature != nil {
+		project.Feature = input.Feature
 	}
 
 	if input.Images != nil {
@@ -177,8 +187,28 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 
 	app.toProject(project, &input)
 
+	feature, err := json.Marshal(project.Feature)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("failed to marshal feature json: %v", err))
+		return
+	}
+	inputFeature := string(feature)
+
+	projectRequest := &data.ProjectRequest{
+		InternalID: project.InternalID,
+		ExternalID: project.ExternalID,
+		ProposalID: project.ProposalID,
+		Name:       project.Name,
+		Status:     project.Status,
+		Feature:    &inputFeature,
+		Images:     project.Images,
+		Version:    project.Version,
+		CreatedAt:  project.CreatedAt,
+		UpdatedAt:  project.UpdatedAt,
+	}
+
 	if input.ClientNames != nil {
-		project.Clients = []data.ProjectClient{}
+		projectRequest.Clients = []data.ProjectClient{}
 		for _, clientName := range input.ClientNames {
 			client, err := app.models.Client.GetClientByName(clientName)
 			if err != nil {
@@ -191,7 +221,7 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 				}
 				return
 			}
-			project.Clients = append(project.Clients, data.ProjectClient{
+			projectRequest.Clients = append(projectRequest.Clients, data.ProjectClient{
 				ClientID:      &client.InternalID,
 				ClientName:    client.Name,
 				ClientLogo:    client.LogoURL,
@@ -199,9 +229,11 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 				ClientNote:    client.Note,
 			})
 		}
+	} else {
+		projectRequest.Clients = project.Clients
 	}
 
-	err = app.models.Project.Update(project)
+	err = app.models.Project.Update(projectRequest)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrEditConflict):
@@ -212,7 +244,12 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"project": project}, nil)
+	projectResponse, err := app.models.Project.Get(*projectRequest.ExternalID)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to get the project: %v", err))
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"project": projectResponse}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -287,6 +324,10 @@ func (app *application) listProjectHandler(w http.ResponseWriter, r *http.Reques
 
 	input.Name = app.readString(qs, "name", "")
 	input.Status = app.readString(qs, "status", "")
+	input.ProposalId = app.readString(qs, "proposal_id", "")
+	input.ProjectId = app.readString(qs, "project_id", "")
+	input.FullAddress = app.readString(qs, "full_address", "")
+	input.ClientName = app.readString(qs, "client_name", "")
 	input.Clients = app.readCSV(qs, "clients", []string{})
 	input.Bbox = app.readCSV(qs, "bbox", nil)
 
@@ -321,7 +362,10 @@ func (app *application) listProjectHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	projects, metadata, err := app.models.Project.GetAll(input.Name, input.Status, input.Clients, floatBbox, input.Filters)
+	projects, metadata, err := app.models.Project.GetAll(
+		input,
+		floatBbox,
+	)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
