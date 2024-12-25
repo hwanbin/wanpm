@@ -635,7 +635,7 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 
 	if qs.Filters.limit() > 0 {
 		query += `
-			LIMIT $8 OFFSET $9`
+			LIMIT $12 OFFSET $13`
 		args = append(args, qs.Filters.limit(), qs.Filters.offset())
 	}
 
