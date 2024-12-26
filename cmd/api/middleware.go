@@ -85,25 +85,13 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Origin")
-
 		w.Header().Add("Vary", "Access-Control-Request-Method")
 
 		origin := r.Header.Get("Origin")
-
 		if origin != "" {
-			if origin == "https://wanpm.github.io" {
+			if origin == "https://wanton.app" || origin == "https://www.wanton.app" || origin == "http://localhost:5173" || origin == "http://localhost:9000" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-				if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
-					w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
-					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-
-					w.WriteHeader(http.StatusOK)
-					return
-				}
-			} else {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
 
 				if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 					w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")

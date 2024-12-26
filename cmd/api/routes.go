@@ -3,41 +3,59 @@ package main
 import (
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/go-chi/chi/v5"
+	"github.com/hwanbin/wanpm-api/internal/docs"
 )
 
 func (app *application) routes() http.Handler {
-	router := httprouter.New()
+	router := chi.NewRouter()
 
-	router.NotFound = http.HandlerFunc(app.notFoundResponse)
-	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+	router.Use(app.rateLimit)
+	router.Use(app.enableCORS)
+	router.Use(app.recoverPanic)
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+	router.NotFound(app.notFoundResponse)
+	router.MethodNotAllowed(app.methodNotAllowedResponse)
 
-	router.HandlerFunc(http.MethodGet, "/v1/geocode/forward", app.forwardGeocodeHandler)
+	staticFS, err := docs.Assets()
+	if err != nil {
+		panic(err)
+	}
+	fs := http.StripPrefix("/docs/swagger-ui", http.FileServer(http.FS(staticFS)))
+	router.Get("/docs/swagger-ui/*", fs.ServeHTTP)
 
-	router.HandlerFunc(http.MethodGet, "/v1/project", app.listProjectHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/project", app.createProjectHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/project/:id", app.showProjectHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/project/:id", app.updateProjectHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/project/:id", app.deleteProjectHandler)
+	router.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-yaml")
+		w.WriteHeader(http.StatusOK)
+		w.Write(docs.OpenAPISpec)
+	})
 
-	router.HandlerFunc(http.MethodGet, "/v1/client", app.listClientHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/client", app.createClientHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/client/:id", app.showClientHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/client/:id", app.updateClientHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/client/:id", app.deleteClientHandler)
+	router.Get("/v1/healthcheck", app.healthcheckHandler)
 
-	router.HandlerFunc(http.MethodPost, "/v1/proposal", app.createProposalHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/proposal/:id", app.showProposalHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/proposal/:id", app.updateProposalHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/proposal/:id", app.deleteProposalHandler)
+	router.Get("/v1/geocode/forward", app.forwardGeocodeHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/presigned-put", app.createPresignedPutUrlHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/presigned-get", app.createPresignedGetUrlHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/presigned-delete", app.createPresignedDeleteUrlHandler)
+	router.Get("/v1/project", app.listProjectHandler)
+	router.Post("/v1/project", app.createProjectHandler)
+	router.Get("/v1/project/{id}", app.showProjectHandler)
+	router.Patch("/v1/project/{id}", app.updateProjectHandler)
+	router.Delete("/v1/project/{id}", app.deleteProjectHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/list-files", app.listFilesWithPrefixHandler)
+	router.Get("/v1/client", app.listClientHandler)
+	router.Post("/v1/client", app.createClientHandler)
+	router.Get("/v1/client/{id}", app.showClientHandler)
+	router.Patch("/v1/client/{id}", app.updateClientHandler)
+	router.Delete("/v1/client/{id}", app.deleteClientHandler)
 
-	return app.recoverPanic(app.enableCORS(app.rateLimit(router)))
+	router.Post("/v1/proposal", app.createProposalHandler)
+	router.Get("/v1/proposal/{id}", app.showProposalHandler)
+	router.Patch("/v1/proposal/{id}", app.updateProposalHandler)
+	router.Delete("/v1/proposal/{id}", app.deleteProposalHandler)
+
+	router.Get("/v1/presigned-put", app.createPresignedPutUrlHandler)
+	router.Get("/v1/presigned-get", app.createPresignedGetUrlHandler)
+	router.Get("/v1/presigned-delete", app.createPresignedDeleteUrlHandler)
+
+	router.Get("/v1/list-files", app.listFilesWithPrefixHandler)
+
+	return router
 }

@@ -10,14 +10,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/hwanbin/wanpm-api/internal/validator"
-	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) readInt32IDParam(r *http.Request) (int32, error) {
-	params := httprouter.ParamsFromContext(r.Context())
+	idParam := chi.URLParam(r, "id")
 
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 32)
+	id, err := strconv.ParseInt(idParam, 10, 32)
 	if err != nil || id < 1 {
 		return 0, errors.New("invalid id parameter")
 	}
@@ -26,9 +26,7 @@ func (app *application) readInt32IDParam(r *http.Request) (int32, error) {
 }
 
 func (app *application) readStringIDParam(r *http.Request) (string, error) {
-	params := httprouter.ParamsFromContext(r.Context())
-
-	id := params.ByName("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		return "", errors.New("invalid id parameter")
 	}
