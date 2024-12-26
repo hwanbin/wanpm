@@ -1,0 +1,558 @@
+openapi: 3.1.0
+info:
+  title: Wanton API
+  version: 1.0.0
+servers:
+  - url: https://api.wanton.app
+tags:
+  - name: Project
+paths:
+  /v1/healthcheck:
+    get:
+      tags:
+        - Healthcheck
+      summary: Health check
+      description: Returns a message indicating the service status.
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "available"
+                  system_info:
+                    type: object
+                    properties:
+                      environment:
+                        type: string
+                        example: "development"
+                      version:
+                        type: string
+                        example: "1.0.0"
+                        
+  /v1/project:
+    post:
+      tags:
+        - Project
+      summary: Create Project
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/ProjectResponse'
+                    
+    get:
+      tags:
+        - Project
+      summary: List Project
+      parameters:
+        - name: bbox
+          in: query
+          required: false
+          schema:
+            type: string
+          example: '-79.513256,40.511408,-78.382562,45.747538'
+          description: Bounding box to filter projects. Format - bbox=west,south,east,north
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: '100'
+          description: The number of items per page.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: '1'
+          description: The page number to retrieve.
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          example: '-project_id'
+          description: project_id, -project_id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+                  prjects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectResponse'
+            
+  /v1/project/{project_id}:
+    get:
+      tags:
+        - Project
+      summary: Read project details
+      description: Read an existing project by ID.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 24001
+      responses:
+        "200":
+          description: A project object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/ProjectResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+          
+    patch:
+      tags:
+        - Project
+      summary: Update project details
+      description: update an existing project by ID.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 24001
+      requestBody:
+        description: partial project object - all fields are optional
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                project_id: 24002
+                proposal_id: P002-24
+                name: Otester, Ontario L0L 2E0
+                status: In Progress
+                client_names:
+                  - Skynet
+                  - Acme
+                feature:
+                  type: Feature
+                  geometry:
+                    type: Point
+                    coordinates:
+                      - -79.384743
+                      - 43.669624
+                  properties:
+                    name: Otester
+                    full_address: Otester, Ontario L0L 2E0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/ProjectResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+    delete:
+      tags:
+        - Project
+      summary: Delete Project
+      description: delete an existing project by ID.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "project successfully deleted"
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+  
+  /v1/client:
+    post:
+      tags:
+        - Client
+      summary: Create client
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+    
+    get:
+      tags:
+        - Client
+      summary: List clients
+      description: Retrieve a list of clients along with metadata.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 1
+          description: The page number to retrieve.
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 10
+          description: The number of items per page.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+                  clients:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClientResponse'
+    
+  /v1/client/{client_id}:
+    get:
+      tags:
+        - Client
+      summary: Read client details
+      description: Read an existing client by ID.
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+    
+    patch:
+      tags:
+        - Client
+      summary: Update client details
+      description: Update an existing client by ID.
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        description: partial client object to be updated
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  example: "Contact, 123-456-7890"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client:
+                    $ref: '#/components/schemas/ClientResponse'
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+    
+    delete:
+      tags:
+        - Client
+      summary: Delete client details
+      description: Delete an existing client by ID.
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "client successfully deleted"
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+    
+components:
+  schemas:
+    Feature:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "Feature"
+        geometry:
+          type: object
+          properties:
+            type:
+              type: string
+              example: "Point"
+            coordinates:
+              type: array
+              items:
+                type: number
+                format: float
+              example: [-79.727796, 43.781326]
+        properties:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Parliament Hill Place"
+            full_address:
+              type: string
+              example: "Parliament Hill Place, Brampton, Ontario L6P 1S8, Canada"
+  
+    ClientRequest:
+      type: object
+      required:
+        - name
+        - address
+        - logo_url
+        - note
+      properties:
+        name:
+          type: string
+          example: "Acme"
+        address:
+          type: string
+          example: "123 Acme Street"
+        logo_url:
+          type: string
+          example: "http://acmelogos.com/images/logo-3.svg"
+        note:
+          type: string
+          example: "Victor Boniface, 123-567-2345"
+          
+    ClientResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        name:
+          type: string
+          example: "Homelife Today Realty"
+        logo_url:
+          type: string
+          example: "https://image.pngaaa.com/189/734189-middle.png"
+        address: 
+          type: string
+          example: "1234 Yondu Road"
+        note:
+          type: string
+          example: "Yondu Udonta, 123-456-5003"
+        version:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-10-08T11:44:41Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-10-08T11:44:41Z"
+          
+    Metadata:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 10
+        first_page:
+          type: integer
+          example: 1
+        last_page:
+          type: integer
+          example: 1
+        total_records:
+          type: integer
+          example: 10
+          
+    ProjectRequest:
+      type: object
+      example:
+        project_id: 24001
+        proposal_id: P001-24
+        name: Parliament Hill Place
+        status: Pending
+        client_names:
+          - Yondu Industry
+          - Homelife Today Realty
+        feature:
+          type: Feature
+          geometry:
+            type: Point
+            coordinates:
+              - -79.727796
+              - 43.781326
+          properties:
+            name: Parliament Hill Place
+            full_address: Parliament Hill Place, Brampton, Ontario L6P 1S8, Canada
+        images:
+          - >-
+            https://wantoni-image-bucket.s3.us-east-1.amazonaws.com/24415/AAAABThJwoKauwjlFX65FutF8MqqiQzWU4jIFTZpdzZ7ql7rx77tcsMHXRlY77eMrgbOuy78i8XIPKP-SY6Gsy_n2J_ulMBLT0Dm_rtQlOTs-DrCaBDcvF6BYJifHA.jpg
+          - >-
+            https://wantoni-image-bucket.s3.us-east-1.amazonaws.com/24415/spongebob-squarepants-patrick-vector.jpg
+              
+    ProjectResponse:
+      type: object
+      properties:
+        project_id:
+          type: integer
+          example: 24001
+        proposal_id:
+          type: string
+          example: "P001-24"
+        name:
+          type: string
+          example: "orillia street, ottawa, ontario k1h 7n7, canada"
+        status:
+          type: string
+          example: "Pending"
+        clients:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientResponse'
+        feature:
+          $ref: '#/components/schemas/Feature'
+        images:
+          type: array
+          items:
+            type: string
+          example: ["https://cdn.britannica.com/83/148783-050-30A7C8E7/Sunderland-Museum-and-Winter-Gardens-Tyne-Wear.jpg?w=400&h=300&c=crop"]
+        version:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"

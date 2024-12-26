@@ -132,6 +132,7 @@ func (app *application) updateClientHandler(w http.ResponseWriter, r *http.Reque
 		Name    *string `json:"name"`
 		Address *string `json:"address"`
 		Note    *string `json:"note"`
+		LogoURL *string `json:"logo_url"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -150,6 +151,10 @@ func (app *application) updateClientHandler(w http.ResponseWriter, r *http.Reque
 
 	if input.Note != nil {
 		client.Note = input.Note
+	}
+
+	if input.LogoURL != nil {
+		client.LogoURL = input.LogoURL
 	}
 
 	v := validator.New()
