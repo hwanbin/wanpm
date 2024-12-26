@@ -14,7 +14,7 @@ paths:
       summary: Health check
       description: Returns a message indicating the service status.
       responses:
-        "200":
+        '200':
           description: Service is running
           content:
             application/json:
@@ -67,6 +67,48 @@ paths:
             type: string
           example: '-79.513256,40.511408,-78.382562,45.747538'
           description: Bounding box to filter projects. Format - bbox=west,south,east,north
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          example: 'Avenue'
+          description: string pattern to filter projects. - 'Avenue' matches name containing 'Avenue'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          example: 'In Progress'
+          description: string pattern to filter projects. - 'In Progress' matches status containing 'In Progress'
+        - name: project_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 24
+          description: integer pattern to filter projects. - 24 matches project IDs containing 24
+        - name: proposal_id
+          in: query
+          required: false
+          schema:
+            type: string
+          example: 'P00'
+          description: string pattern to filter projects. - 'P00' matches proposal IDs containing 'P00'
+        - name: full_address
+          in: query
+          required: false
+          schema:
+            type: string
+          example: 'Toronto'
+          description: string pattern to filter projects. - 'Toronto' matches full address containing 'Toronto'
+        - name: client_name
+          in: query
+          required: false
+          schema:
+            type: string
+          example: 'Corp'
+          description: string pattern to filter projects. - 'Corp' matches client name containing 'Corp'
         - name: page_size
           in: query
           required: false
@@ -118,7 +160,7 @@ paths:
             format: int32
             example: 24001
       responses:
-        "200":
+        '200':
           description: A project object
           content:
             application/json:
