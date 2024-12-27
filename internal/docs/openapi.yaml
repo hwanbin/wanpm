@@ -58,7 +58,7 @@ paths:
     get:
       tags:
         - Project
-      summary: List Project
+      summary: List Projects
       parameters:
         - name: bbox
           in: query
@@ -149,7 +149,7 @@ paths:
     get:
       tags:
         - Project
-      summary: Read project details
+      summary: Read Project
       description: Read an existing project by ID.
       parameters:
         - name: project_id
@@ -183,7 +183,7 @@ paths:
     patch:
       tags:
         - Project
-      summary: Update project details
+      summary: Update Project
       description: update an existing project by ID.
       parameters:
         - name: project_id
@@ -276,7 +276,7 @@ paths:
     post:
       tags:
         - Client
-      summary: Create client
+      summary: Create Client
       requestBody:
         content:
           application/json:
@@ -293,7 +293,7 @@ paths:
     get:
       tags:
         - Client
-      summary: List clients
+      summary: List Clients
       description: Retrieve a list of clients along with metadata.
       parameters:
         - name: page
@@ -329,7 +329,7 @@ paths:
     get:
       tags:
         - Client
-      summary: Read client details
+      summary: Read Client
       description: Read an existing client by ID.
       parameters:
         - name: client_id
@@ -359,7 +359,7 @@ paths:
     patch:
       tags:
         - Client
-      summary: Update client details
+      summary: Update Client
       description: Update an existing client by ID.
       parameters:
         - name: client_id
@@ -403,7 +403,7 @@ paths:
     delete:
       tags:
         - Client
-      summary: Delete client details
+      summary: Delete Client
       description: Delete an existing client by ID.
       parameters:
         - name: client_id
