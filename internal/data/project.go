@@ -162,7 +162,6 @@ func ValidateUpdatingProjectInput(v *validator.Validator, p *ProjectInput) {
 	}
 
 	if p.Feature != nil {
-		// v.Check(!p.Feature.IsEmptyFeature(), "feature", "must be valid feature json")
 		v.Check(p.Feature.IsValidFeature(), "feature", "must be valid feature json")
 
 		if !p.Feature.IsEmptyFeature() {
@@ -209,12 +208,6 @@ func ValidateProject(v *validator.Validator, p *ProjectRequest) {
 		v.Check(*p.Status != "", "status", "must not be empty string")
 		v.Check(len(*p.Status) <= 100, "status", "must not be more than 100 bytes long")
 	}
-
-	// // v.Check(p.Coordinates != nil, "coordinates", "must be provided")
-	// if p.Coordinates != nil {
-	// 	// when below compare equals false then put it int the error bag
-	// 	v.Check(len(p.Coordinates) == 2, "coordinates", "must be a longitude, latitude pair")
-	// }
 
 	if p.Images != nil {
 		v.Check(len(p.Images) >= 1, "images", "must contain at least 1 image")
@@ -579,38 +572,44 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 		LEFT JOIN project_client pc ON p.internal_id = pc.project_internal_id
 		LEFT JOIN client c ON pc.client_internal_id = c.internal_id
 		WHERE (
-			( p.name ILIKE '%%' || $1 || '%%' OR $1 = '' )
-			AND
-			( p.status ILIKE '%%' || $2 || '%%' OR $2 = '' )
-			AND
-			( ($3::boolean IS FALSE)
+			(
+				( p.name ILIKE '%%' || $1 || '%%' and not $1 = '' )
 				OR
-				(
-					jsonb_typeof(p.feature->'geometry'->'coordinates') = 'array'
-					AND jsonb_array_length(p.feature->'geometry'->'coordinates') = 2
-					AND ST_Within(
-						ST_GeomFromGeoJSON(p.feature->'geometry'), 
-						ST_MakeEnvelope($4, $5, $6, $7, 4326)
+				( p.status ILIKE '%%' || $2 || '%%' and not $2 = '' )
+				OR
+				( 
+					($3::boolean IS TRUE)
+					AND
+					(
+						jsonb_typeof(p.feature->'geometry'->'coordinates') = 'array'
+						AND jsonb_array_length(p.feature->'geometry'->'coordinates') = 2
+						AND ST_Within(
+							ST_GeomFromGeoJSON(p.feature->'geometry'), 
+							ST_MakeEnvelope($4, $5, $6, $7, 4326)
+						)
+					)
+				)
+				OR
+				( CAST(p.project_id AS TEXT) LIKE '%%' || $8 || '%%' and not $8 = '' )
+				OR
+				( p.proposal_id ILIKE '%%' || $9 || '%%' and not $9 = '' )
+				OR
+				( p.feature->'properties'->>'full_address' ILIKE '%%' || $10 || '%%' and not $10 = '' )
+				OR
+				( 
+					p.internal_id IN (
+						SELECT pc.project_internal_id
+						FROM project_client pc
+						WHERE pc.client_internal_id IN (
+							SELECT c.internal_id
+							FROM client c
+							WHERE ( c.name ILIKE '%%' || $11 || '%%' and not $11 = '' )
+						)
 					)
 				)
 			)
-			AND
-			( CAST(p.project_id AS TEXT) LIKE '%%' || $8 || '%%' or $8 = '' )
-			AND
-			( p.proposal_id ILIKE '%%' || $9 || '%%' or $9 = '' )
-			AND
-			( p.feature->'properties'->>'full_address' ILIKE '%%' || $10 || '%%' or $10 = '' )
-			AND
-			( p.internal_id IN (
-					SELECT pc.project_internal_id
-					FROM project_client pc
-					WHERE pc.client_internal_id IN (
-						SELECT c.internal_id
-						FROM client c
-						WHERE c.name ILIKE '%%' || $11 || '%%' or $11 = ''
-					)
-				)
-			)
+			OR
+			( $1 = '' and $2 = '' and $3 = FALSE and $8 = '' and $9 = '' and $10 = '' and $11 = '' )
 		)
 		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature, p.images, p.version, p.created_at, p.updated_at
 		ORDER BY %s %s, p.project_id ASC`,
