@@ -157,7 +157,7 @@ func (app *application) toProject(project *data.ProjectResponse, input *data.Pro
 func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Request) {
 	externalID, err := app.readInt32IDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
