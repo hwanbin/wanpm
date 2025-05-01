@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS appuser (
-    internal_id serial PRIMARY KEY,
+    id cuid PRIMARY KEY,
     email citext UNIQUE NOT NULL,
     first_name citext NOT NULL,
     last_name citext NOT NULL,

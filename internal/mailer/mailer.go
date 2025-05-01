@@ -18,7 +18,10 @@ type Mailer struct {
 }
 
 func New(host string, port int, username, password, sender string) Mailer {
+	// for container
 	dialer := mail.NewDialer(host, port, username, password)
+	// for non container
+	// dialer := mail.NewDialer("172.18.0.2", 1025, username, password)
 	dialer.Timeout = 5 * time.Second
 
 	return Mailer{
@@ -68,11 +71,4 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 	}
 
 	return err
-}
-
-func newFunction(err error) (bool, error) {
-	if err != nil {
-		return true, err
-	}
-	return false, nil
 }

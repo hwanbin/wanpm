@@ -3,18 +3,18 @@ info:
   title: Wanton API
   version: 1.0.0
 servers:
-  - url: https://api.wanton.app
+  - url: https://dev.wanton.app
 tags:
   - name: Project
 paths:
-  /v1/healthcheck:
+  /v0/healthcheck:
     get:
       tags:
         - Healthcheck
       summary: Health check
       description: Returns a message indicating the service status.
       responses:
-        '200':
+        "200":
           description: Service is running
           content:
             application/json:
@@ -33,8 +33,9 @@ paths:
                       version:
                         type: string
                         example: "1.0.0"
-                        
-  /v1/project:
+
+  # Project endpoint
+  /v0/project:
     post:
       tags:
         - Project
@@ -43,9 +44,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProjectRequest'
+              $ref: "#/components/schemas/ProjectRequest"
       responses:
-        '201':
+        "201":
           description: Successful response
           content:
             application/json:
@@ -53,8 +54,8 @@ paths:
                 type: object
                 properties:
                   project:
-                    $ref: '#/components/schemas/ProjectResponse'
-                    
+                    $ref: "#/components/schemas/ProjectResponse"
+
     get:
       tags:
         - Project
@@ -65,21 +66,21 @@ paths:
           required: false
           schema:
             type: string
-          example: '-79.513256,40.511408,-78.382562,45.747538'
+          example: "-79.513256,40.511408,-78.382562,45.747538"
           description: Bounding box to filter projects. Format - bbox=west,south,east,north
         - name: name
           in: query
           required: false
           schema:
             type: string
-          example: 'Avenue'
+          example: "Avenue"
           description: string pattern to filter projects. - 'Avenue' matches name containing 'Avenue'
         - name: status
           in: query
           required: false
           schema:
             type: string
-          example: 'In Progress'
+          example: "In Progress"
           description: string pattern to filter projects. - 'In Progress' matches status containing 'In Progress'
         - name: project_id
           in: query
@@ -93,45 +94,45 @@ paths:
           required: false
           schema:
             type: string
-          example: 'P00'
+          example: "P00"
           description: string pattern to filter projects. - 'P00' matches proposal IDs containing 'P00'
         - name: full_address
           in: query
           required: false
           schema:
             type: string
-          example: 'Toronto'
+          example: "Toronto"
           description: string pattern to filter projects. - 'Toronto' matches full address containing 'Toronto'
         - name: client_name
           in: query
           required: false
           schema:
             type: string
-          example: 'Corp'
+          example: "Corp"
           description: string pattern to filter projects. - 'Corp' matches client name containing 'Corp'
         - name: page_size
           in: query
           required: false
           schema:
             type: integer
-          example: '100'
+          example: "100"
           description: The number of items per page.
         - name: page
           in: query
           required: false
           schema:
             type: integer
-          example: '1'
+          example: "1"
           description: The page number to retrieve.
         - name: sort
           in: query
           required: false
           schema:
             type: string
-          example: '-project_id'
+          example: "-project_id"
           description: project_id, -project_id
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -139,13 +140,13 @@ paths:
                 type: object
                 properties:
                   metadata:
-                    $ref: '#/components/schemas/Metadata'
+                    $ref: "#/components/schemas/Metadata"
                   prjects:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ProjectResponse'
-            
-  /v1/project/{project_id}:
+                      $ref: "#/components/schemas/ProjectResponse"
+
+  /v0/project/{project_id}:
     get:
       tags:
         - Project
@@ -160,7 +161,7 @@ paths:
             format: int32
             example: 24001
       responses:
-        '200':
+        "200":
           description: A project object
           content:
             application/json:
@@ -168,8 +169,8 @@ paths:
                 type: object
                 properties:
                   project:
-                    $ref: '#/components/schemas/ProjectResponse'
-        '404':
+                    $ref: "#/components/schemas/ProjectResponse"
+        "404":
           description: Project not found
           content:
             application/json:
@@ -179,7 +180,7 @@ paths:
                   error:
                     type: string
                     example: "the requested resource could not be found"
-          
+
     patch:
       tags:
         - Project
@@ -218,7 +219,7 @@ paths:
                     name: Otester
                     full_address: Otester, Ontario L0L 2E0
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -226,8 +227,8 @@ paths:
                 type: object
                 properties:
                   project:
-                    $ref: '#/components/schemas/ProjectResponse'
-        '404':
+                    $ref: "#/components/schemas/ProjectResponse"
+        "404":
           description: Project not found
           content:
             application/json:
@@ -251,7 +252,7 @@ paths:
             type: integer
             format: int32
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -261,7 +262,7 @@ paths:
                   message:
                     type: string
                     example: "project successfully deleted"
-        '404':
+        "404":
           description: Project not found
           content:
             application/json:
@@ -271,8 +272,9 @@ paths:
                   error:
                     type: string
                     example: "the requested resource could not be found"
-  
-  /v1/client:
+
+  # Client endpoint
+  /v0/client:
     post:
       tags:
         - Client
@@ -281,15 +283,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClientRequest'
+              $ref: "#/components/schemas/ClientRequest"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientResponse'
-    
+                $ref: "#/components/schemas/ClientResponse"
+
     get:
       tags:
         - Client
@@ -311,7 +313,7 @@ paths:
             example: 10
           description: The number of items per page.
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -319,17 +321,17 @@ paths:
                 type: object
                 properties:
                   metadata:
-                    $ref: '#/components/schemas/Metadata'
+                    $ref: "#/components/schemas/Metadata"
                   clients:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ClientResponse'
-    
-  /v1/client/{client_id}:
+                      $ref: "#/components/schemas/ClientResponse"
+
+  /v0/client/{client_id}:
     get:
       tags:
         - Client
-      summary: Read Client
+      summary: Read a client
       description: Read an existing client by ID.
       parameters:
         - name: client_id
@@ -339,13 +341,13 @@ paths:
             type: integer
             format: int32
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientResponse'
-        '404':
+                $ref: "#/components/schemas/ClientResponse"
+        "404":
           description: Client not found
           content:
             application/json:
@@ -355,7 +357,7 @@ paths:
                   error:
                     type: string
                     example: "the requested resource could not be found"
-    
+
     patch:
       tags:
         - Client
@@ -380,7 +382,7 @@ paths:
                   type: string
                   example: "Contact, 123-456-7890"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -388,8 +390,8 @@ paths:
                 type: object
                 properties:
                   client:
-                    $ref: '#/components/schemas/ClientResponse'
-        '404':
+                    $ref: "#/components/schemas/ClientResponse"
+        "404":
           description: Client not found
           content:
             application/json:
@@ -399,7 +401,7 @@ paths:
                   error:
                     type: string
                     example: "the requested resource could not be found"
-    
+
     delete:
       tags:
         - Client
@@ -414,7 +416,7 @@ paths:
             format: int32
             example: 2
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -424,7 +426,7 @@ paths:
                   message:
                     type: string
                     example: "client successfully deleted"
-        '404':
+        "404":
           description: Client not found
           content:
             application/json:
@@ -434,9 +436,679 @@ paths:
                   error:
                     type: string
                     example: "the requested resource could not be found"
-    
+
+  # User endpoint
+  /v0/user:
+    post:
+      tags:
+        - User
+      summary: Register a user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserResponse"
+
+  /v0/user/activate:
+    put:
+      tags:
+        - User
+      summary: Activate a user using token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserActivationRequest"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserActivationResponse"
+
+  /v0/user/authenticate:
+    post:
+      tags:
+        - User
+      summary: Authenticate a user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserAuthenticationRequest"
+      responses:
+        "202":
+          description: Successful response - Accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAuthenticationResponse"
+
+  /v0/user/refresh:
+    get:
+      tags:
+        - User
+      summary: Refresh access_token
+      description: Refresh access_token using refresh_token cookie
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAuthenticationResponse"
+
+  /v0/user/logout:
+    get:
+      tags:
+        - User
+      summary: logout
+      description: log a user out by expiring refresh_token cookie
+      responses:
+        "202":
+          description: Successful response - Accepted
+
+  # Role endpoint
+  /v0/role:
+    post:
+      tags:
+        - Role
+      summary: Create a role
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleRequest"
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/RoleResponse"
+                    
+    get:
+      tags:
+        - Role
+      summary: List Roles
+      description: Retrieve a list of roles along with metadata.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+                  roles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RoleResponse"
+
+  /v0/role/{role_id}:
+    get:
+      tags:
+        - Role
+      summary: Read a role
+      description: Read an existing role by ID.
+      parameters:
+        - name: role_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResponse"
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+    patch:
+      tags:
+        - Role
+      summary: Update a role
+      description: update an existing role by ID.
+      parameters:
+        - name: role_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 1
+      requestBody:
+        # description: partial project object - all fields are optional
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Drafter
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: "#/components/schemas/RoleResponse"
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"   
+
+    delete:
+      tags:
+        - Role
+      summary: Delete a role
+      description: delete an existing role by ID.
+      parameters:
+        - name: role_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "role successfully deleted"
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+  # Activity endpoint
+  /v0/activity:
+    post:
+      tags:
+        - Activity
+      summary: Create an activity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityRequest"
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/ActivityResponse"
+
+    get:
+      tags:
+        - Activity
+      summary: List activities
+      description: Retrieve a list of activities along with metadata.
+      parameters:
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 10
+          description: The number of items per page.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 1
+          description: The page number to retrieve.
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "-id"
+          description: id(default), -id
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+                  activities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActivityResponse"
+
+  /v0/activity/{activity_id}:
+    get:
+      tags:
+        - Activity
+      summary: Read an activity
+      description: Read an existing activity by ID.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+    patch:
+      tags:
+        - Activity
+      summary: Update an activity
+      description: update an existing activity by ID.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 1
+      requestBody:
+        # description: partial project object - all fields are optional
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: "Meeting"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: "#/components/schemas/ActivityResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"   
+
+    delete:
+      tags:
+        - Activity
+      summary: Delete an activity
+      description: delete an existing activity by ID.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "activity successfully deleted"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+  # Timesheet endpoint
+  /v0/timesheet:
+    post:
+      tags:
+        - Timesheet
+      summary: Create a timesheet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimesheetRequest"
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timesheet:
+                    $ref: "#/components/schemas/TimesheetResponse"
+
+    get:
+      tags:
+        - Timesheet
+      summary: List timesheets
+      description: Retrieve a list of timesheets along with metadata.
+      parameters:
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "yondu@yondumail.com"
+          description: string pattern to filter timesheets.
+        - name: first_name
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "Yondu"
+          description: string pattern to filter timesheets.
+        - name: last_name
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "Udonta"
+          description: string pattern to filter timesheets.
+        - name: project_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 24010
+          description: project id to filter timesheets.
+        - name: project_name
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "Pineview"
+          description: string pattern to filter timesheets.
+        - name: activity_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 1
+          description: activity id to filter timesheets.
+        - name: activity_name
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "Design"
+          description: string pattern to filter timesheets.
+        - name: work_date
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "2025-01-01"
+          description: date(YYYY-MM-DD) to filter timesheets.
+        - name: from_date
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "2025-01-01"
+          description: start date(YYYY-MM-DD) of the date range(inclusive) to filter timesheets.
+        - name: to_date
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "2025-01-02"
+          description: end date(YYYY-MM-DD) of the date range(inclusive) to filter timesheets.
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 10
+          description: The number of items per page.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 1
+          description: The page number to retrieve.
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "-id"
+          description: id(default), -id, project_id, -project_id, work_date, -work_date
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+                  timesheets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TimesheetResponse"
+
+  /v0/timesheet/{timesheet_id}:
+    get:
+      tags:
+        - Timesheet
+      summary: Read a timesheet
+      description: Read an existing timesheet by ID.
+      parameters:
+        - name: timesheet_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "01JRQAZDX24JTBZTTFBDHH1Z7D"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetResponse"
+        "404":
+          description: Timesheet not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+    patch:
+      tags:
+        - Timesheet
+      summary: Update a timesheet
+      description: update an existing timesheet by ID.
+      parameters:
+        - name: timesheet_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "01JRQAZDX24JTBZTTFBDHH1Z7D"
+      requestBody:
+        description: partial timsheet object - all fields are optional
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_id:
+                  type: integer
+                  example: 24403
+                client_id:
+                  type: integer
+                  example: 1
+                activity_id:
+                  type: integer
+                  example: 21
+                work_date:
+                  type: string
+                  example: "2025-01-01"
+                work_mins:
+                  type: integer
+                  example: 360
+                description:
+                  type: string
+                  example: "Designing Bifrost"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: "#/components/schemas/TimesheetResponse"
+        "404":
+          description: Timesheet not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
+    delete:
+      tags:
+        - Timesheet
+      summary: Delete a timesheet
+      description: delete an existing timesheet by ID.
+      parameters:
+        - name: timesheet_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "01JRQAZDX24JTBZTTFBDHH1Z7D"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "timesheet successfully deleted"
+        "404":
+          description: Timesheet not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "the requested resource could not be found"
+
 components:
   schemas:
+    Image:
+      type: array
+      items:
+        type: string
+      example:
+        - "https://wantoni-image-bucket.s3.us-east-1.amazonaws.com/24415/AAAABThJwoKauwjlFX65FutF8MqqiQzWU4jIFTZpdzZ7ql7rx77tcsMHXRlY77eMrgbOuy78i8XIPKP-SY6Gsy_n2J_ulMBLT0Dm_rtQlOTs-DrCaBDcvF6BYJifHA.jpg"
+        - "https://wantoni-image-bucket.s3.us-east-1.amazonaws.com/24415/spongebob-squarepants-patrick-vector.jpg" 
+
     Feature:
       type: object
       properties:
@@ -464,7 +1136,7 @@ components:
             full_address:
               type: string
               example: "Parliament Hill Place, Brampton, Ontario L6P 1S8, Canada"
-  
+
     ClientRequest:
       type: object
       required:
@@ -485,7 +1157,7 @@ components:
         note:
           type: string
           example: "Victor Boniface, 123-567-2345"
-          
+
     ClientResponse:
       type: object
       properties:
@@ -498,7 +1170,7 @@ components:
         logo_url:
           type: string
           example: "https://image.pngaaa.com/189/734189-middle.png"
-        address: 
+        address:
           type: string
           example: "1234 Yondu Road"
         note:
@@ -515,7 +1187,7 @@ components:
           type: string
           format: date-time
           example: "2024-10-08T11:44:41Z"
-          
+
     Metadata:
       type: object
       properties:
@@ -534,33 +1206,46 @@ components:
         total_records:
           type: integer
           example: 10
-          
+    
+    Assignment:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          example: "kznbv0nd"
+        role_id:
+          type: integer
+          example: 1
+
     ProjectRequest:
       type: object
-      example:
-        project_id: 24001
-        proposal_id: P001-24
-        name: Parliament Hill Place
-        status: Pending
+      properties:
+        project_id:
+          type: integer
+          example: 24403
+        proposal_id:
+          type: string
+          example: "P403-24"
+        name:
+          type: string
+          example: "Pineview Corner"
+        status:
+          type: string
+          example: "Pending"
         client_names:
-          - Yondu Industry
-          - Homelife Today Realty
+          type: array
+          items:
+            type: string
+          example: ["Yondu Industry", "Homelife Today Realty"]
         feature:
-          type: Feature
-          geometry:
-            type: Point
-            coordinates:
-              - -79.727796
-              - 43.781326
-          properties:
-            name: Parliament Hill Place
-            full_address: Parliament Hill Place, Brampton, Ontario L6P 1S8, Canada
+          $ref: '#/components/schemas/Feature'
         images:
-          - >-
-            https://wantoni-image-bucket.s3.us-east-1.amazonaws.com/24415/AAAABThJwoKauwjlFX65FutF8MqqiQzWU4jIFTZpdzZ7ql7rx77tcsMHXRlY77eMrgbOuy78i8XIPKP-SY6Gsy_n2J_ulMBLT0Dm_rtQlOTs-DrCaBDcvF6BYJifHA.jpg
-          - >-
-            https://wantoni-image-bucket.s3.us-east-1.amazonaws.com/24415/spongebob-squarepants-patrick-vector.jpg
-              
+          $ref: '#/components/schemas/Image'
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignment'
+
     ProjectResponse:
       type: object
       properties:
@@ -579,14 +1264,15 @@ components:
         clients:
           type: array
           items:
-            $ref: '#/components/schemas/ClientResponse'
+            $ref: "#/components/schemas/ClientResponse"
         feature:
-          $ref: '#/components/schemas/Feature'
+          $ref: "#/components/schemas/Feature"
         images:
+          $ref: '#/components/schemas/Image'
+        assignments:
           type: array
           items:
-            type: string
-          example: ["https://cdn.britannica.com/83/148783-050-30A7C8E7/Sunderland-Museum-and-Winter-Gardens-Tyne-Wear.jpg?w=400&h=300&c=crop"]
+            $ref: '#/components/schemas/Assignment'
         version:
           type: integer
           example: 1
@@ -598,3 +1284,259 @@ components:
           type: string
           format: date-time
           example: "2024-01-01T16:10:55Z"
+
+    UserRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - email
+        - password
+      properties:
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          example: "johndoe@email.com"
+        password:
+          type: string
+          example: "SuperSecretPassword!"
+
+    UserResponse:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          example: "johndoe@email.com"
+        activated:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+
+    UserActivationRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "QU4FJR5N6WSYUSYBTDRCPZZ3YU"
+
+    UserActivationResponse:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          example: "johndoe@email.com"
+        activated:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+
+    UserAuthenticationRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          example: "johndoe@email.com"
+        password:
+          type: string
+          example: "SuperSecretPassword!"
+
+    UserAuthenticationResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: "ey..."
+
+    RoleRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Drafter"
+
+    RoleResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Drafter"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+
+    ActivityRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Meeting"
+
+    ActivityResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Meeting"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T16:10:55Z"
+
+    TimesheetRequest:
+      type: object
+      required:
+        - user_id
+        - project_id
+        - client_id
+        - activity_id
+        - work_date
+        - work_mins
+      properties:
+        user_id:
+          type: string
+          example: "b1lpu5hm"
+        project_id:
+          type: integer
+          example: 24403
+        client_id:
+          type: integer
+          example: 1
+        activity_id:
+          type: integer
+          example: 1
+        work_date:
+          type: string
+          example: "2025-01-01"
+        work_mins:
+          type: integer
+          example: 360
+        description:
+          type: string
+          example: "Find something else more interesting fall asleep on the washing machine be superior or meeeeouw"
+      
+    TimesheetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "01JRQAZDX24JTBZTTFBDHH1Z7D"
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "b1lpu5hm"
+            email:
+              type: string
+              example: "thorodinson@thormail.com"
+            first_name:
+              type: string
+              example: "Thor"
+            last_name:
+              type: string
+              example: "Odinson"
+            activated:
+              type: boolean
+              example: true
+        project:
+          type: object
+          properties:
+            project_id:
+              type: integer
+              example: 24403
+            name:
+              type: string
+              example: "123 Ragna Road"
+        client:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: "Yondu Industry"
+        activity:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 21
+            name:
+              type: string
+              example: "Design"
+        work_date:
+          type: string
+          example: "2025-01-01"
+        work_mins:
+          type: integer
+          example: 360
+        description:
+          type: string
+          example: "Designing Bifrost"
+        status:
+          type: string
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-01-01T16:10:55Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-01-01T16:10:55Z"

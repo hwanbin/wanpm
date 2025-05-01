@@ -89,7 +89,7 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 
 		origin := r.Header.Get("Origin")
 		if origin != "" {
-			if origin == "https://wanton.app" || origin == "https://www.wanton.app" || origin == "http://localhost:5173" || origin == "http://localhost:9000" {
+			if origin == "https://wanton.app" || origin == "https://www.wanton.app" || origin == "http://localhost:5173" || origin == "http://localhost:9000" || origin == "http://[::1]:5173" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 
@@ -103,6 +103,17 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 			}
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) authRequired(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _, err := app.config.auth.GetTokenFromHeaderAndVerify(w, r)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }

@@ -10,7 +10,11 @@ require (
 	github.com/aws/smithy-go v1.22.1
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-mail/mail/v2 v2.3.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/lib/pq v1.10.9
+	github.com/nrednav/cuid2 v1.0.1
+	github.com/oklog/ulid/v2 v2.1.0
+	golang.org/x/crypto v0.33.0
 	golang.org/x/time v0.6.0
 )
 
@@ -29,6 +33,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.1 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
 )

@@ -32,6 +32,7 @@ func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// TODO: validate feature
 	feature, err := json.Marshal(input.Feature)
 	if err != nil {
 		app.errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("failed to marshal feature json: %v", err))
@@ -40,12 +41,14 @@ func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Requ
 	inputFeature := string(feature)
 
 	project := &data.ProjectRequest{
-		ExternalID: input.ExternalID,
-		ProposalID: input.ProposalID,
-		Name:       input.Name,
-		Status:     input.Status,
-		Feature:    &inputFeature,
-		Images:     input.Images,
+		ExternalID:  input.ExternalID,
+		ProposalID:  input.ProposalID,
+		Name:        input.Name,
+		Status:      input.Status,
+		Feature:     &inputFeature,
+		Note:        input.Note,
+		Images:      input.Images,
+		Assignments: input.Assignments,
 	}
 
 	project.Clients = []data.ProjectClient{}
@@ -62,7 +65,7 @@ func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		project.Clients = append(project.Clients, data.ProjectClient{
-			ClientID:      &client.InternalID,
+			ClientID:      &client.ID,
 			ClientName:    client.Name,
 			ClientLogo:    client.LogoURL,
 			ClientAddress: client.Address,
@@ -103,7 +106,7 @@ func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Requ
 func (app *application) showProjectHandler(w http.ResponseWriter, r *http.Request) {
 	externalID, err := app.readInt32IDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -222,7 +225,7 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 				return
 			}
 			projectRequest.Clients = append(projectRequest.Clients, data.ProjectClient{
-				ClientID:      &client.InternalID,
+				ClientID:      &client.ID,
 				ClientName:    client.Name,
 				ClientLogo:    client.LogoURL,
 				ClientAddress: client.Address,
@@ -231,6 +234,44 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 		}
 	} else {
 		projectRequest.Clients = project.Clients
+	}
+
+	if input.Assignments != nil {
+		if len(input.Assignments) != 0 {
+			projectRequest.Assignments = []data.ProjectAssignmentRequest{}
+			for _, assignment := range input.Assignments {
+				employee, err := app.models.User.GetById(*assignment.EmployeeID)
+				if err != nil {
+					switch {
+					case errors.Is(err, data.ErrRecordNotFound):
+						v.AddError("employee id", fmt.Sprintf("%s cannot be found", *assignment.EmployeeID))
+						app.failedValidationResponse(w, r, v.Errors)
+					default:
+						app.serverErrorResponse(w, r, err)
+					}
+					return
+				}
+				role, err := app.models.Role.Get(*assignment.RoleID)
+				if err != nil {
+					switch {
+					case errors.Is(err, data.ErrRecordNotFound):
+						v.AddError("role id", fmt.Sprintf("%d cannot be found", *assignment.RoleID))
+						app.failedValidationResponse(w, r, v.Errors)
+					default:
+						app.serverErrorResponse(w, r, err)
+					}
+					return
+				}
+				projectRequest.Assignments = append(projectRequest.Assignments, data.ProjectAssignmentRequest{
+					EmployeeID: &employee.ID,
+					RoleID:     &role.ID,
+				})
+			}
+		} else {
+			projectRequest.Assignments = []data.ProjectAssignmentRequest{}
+		}
+	} else {
+		projectRequest.Assignments = nil
 	}
 
 	err = app.models.Project.Update(projectRequest)
@@ -258,7 +299,7 @@ func (app *application) updateProjectHandler(w http.ResponseWriter, r *http.Requ
 func (app *application) deleteProjectHandler(w http.ResponseWriter, r *http.Request) {
 	externalID, err := app.readInt32IDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

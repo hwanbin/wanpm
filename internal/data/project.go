@@ -36,41 +36,59 @@ type ProjectClient struct {
 }
 
 type ProjectInput struct {
-	ExternalID  *int32   `json:"project_id"`
-	ProposalID  *string  `json:"proposal_id"`
-	Name        *string  `json:"name"`
-	Status      *string  `json:"status"`
-	Feature     *Feature `json:"feature"`
-	Images      []string `json:"images"`
-	ClientNames []string `json:"client_names"`
+	ExternalID  *int32                     `json:"project_id"`
+	ProposalID  *string                    `json:"proposal_id"`
+	Name        *string                    `json:"name"`
+	Status      *string                    `json:"status"`
+	Feature     *Feature                   `json:"feature"`
+	Note        *string                    `json:"note"`
+	Images      []string                   `json:"images"`
+	ClientNames []string                   `json:"client_names"`
+	Assignments []ProjectAssignmentRequest `json:"assignments"`
+}
+
+type ProjectAssignmentRequest struct {
+	EmployeeID *string `json:"employee_id"`
+	RoleID     *int32  `json:"role_id"`
+}
+
+type ProjectAssignment struct {
+	EmployeeID    string `json:"employee_id"`
+	EmployeeEmail string `json:"employee_email"`
+	RoleID        int32  `json:"role_id"`
+	RoleName      string `json:"role_name"`
 }
 
 type ProjectRequest struct {
-	InternalID int32           `json:"-"`
-	ExternalID *int32          `json:"project_id"`
-	ProposalID *string         `json:"proposal_id"`
-	Name       *string         `json:"name"`
-	Status     *string         `json:"status"`
-	Feature    *string         `json:"feature"`
-	Images     []string        `json:"images"`
-	Clients    []ProjectClient `json:"clients"`
-	Version    int32           `json:"version"`
-	CreatedAt  time.Time       `json:"created_at"`
-	UpdatedAt  time.Time       `json:"updated_at"`
+	InternalID  int32                      `json:"-"`
+	ExternalID  *int32                     `json:"project_id"`
+	ProposalID  *string                    `json:"proposal_id"`
+	Name        *string                    `json:"name"`
+	Status      *string                    `json:"status"`
+	Feature     *string                    `json:"feature"`
+	Note        *string                    `json:"note"`
+	Images      []string                   `json:"images"`
+	Clients     []ProjectClient            `json:"clients"`
+	Assignments []ProjectAssignmentRequest `json:"assignments"`
+	Version     int32                      `json:"version"`
+	CreatedAt   time.Time                  `json:"created_at"`
+	UpdatedAt   time.Time                  `json:"updated_at"`
 }
 
 type ProjectResponse struct {
-	InternalID int32           `json:"-"`
-	ExternalID *int32          `json:"project_id"`
-	ProposalID *string         `json:"proposal_id"`
-	Name       *string         `json:"name"`
-	Status     *string         `json:"status"`
-	Feature    *Feature        `json:"feature"`
-	Images     []string        `json:"images"`
-	Clients    []ProjectClient `json:"clients"`
-	Version    int32           `json:"version"`
-	CreatedAt  time.Time       `json:"created_at"`
-	UpdatedAt  time.Time       `json:"updated_at"`
+	InternalID  int32               `json:"-"`
+	ExternalID  *int32              `json:"project_id"`
+	ProposalID  *string             `json:"proposal_id"`
+	Name        *string             `json:"name"`
+	Status      *string             `json:"status"`
+	Feature     *Feature            `json:"feature"`
+	Note        *string             `json:"note"`
+	Images      []string            `json:"images"`
+	Clients     []ProjectClient     `json:"clients"`
+	Assignments []ProjectAssignment `json:"assignments"`
+	Version     int32               `json:"version"`
+	CreatedAt   time.Time           `json:"created_at"`
+	UpdatedAt   time.Time           `json:"updated_at"`
 }
 
 type ProjectQsInput struct {
@@ -127,12 +145,23 @@ func ValidateProjectInputSemantic(v *validator.Validator, p *ProjectInput) {
 	v.Check(*p.Status != "", "status", "must not be an empty string")
 	v.Check(len(*p.Status) <= 100, "status", "must not be more than 100 bytes long")
 
+	if p.Note != nil {
+		v.Check(len(*p.Note) <= 1000, "note", "must not be more than 1000 bytes long")
+	}
+
 	v.Check(len(p.ClientNames) >= 1, "client_names", "must contain at least 1 client")
 	v.Check(validator.Unique(p.ClientNames), "client_names", "must not contain duplicate values")
 
 	if p.Images != nil {
 		v.Check(len(p.Images) >= 1, "images", "must contain at least 1 image")
 		v.Check(validator.Unique(p.Images), "images", "must not contain duplicate values")
+	}
+
+	if len(p.Assignments) > 0 {
+		for _, assignment := range p.Assignments {
+			v.Check(assignment.EmployeeID != nil, "assignment employee_id", "must be provided")
+			v.Check(assignment.RoleID != nil, "assignment role_id", "must be provided")
+		}
 	}
 }
 
@@ -142,7 +171,7 @@ func ValidateUpdatingProjectInput(v *validator.Validator, p *ProjectInput) {
 	}
 
 	if p.ProposalID != nil {
-		v.Check(*p.ProposalID != "", "proposal_id", "must note be empty string")
+		v.Check(*p.ProposalID != "", "proposal_id", "must not be empty string")
 		v.Check(len(*p.ProposalID) <= 10, "proposal_id", "must not be more than 10 bytes long")
 	}
 
@@ -227,8 +256,8 @@ type ProjectModel struct {
 
 func (m ProjectModel) Insert(project *ProjectRequest) error {
 	query := `
-		INSERT INTO project (project_id, proposal_id, name, status, feature, images)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO project (project_id, proposal_id, name, status, feature, images, note)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING internal_id, version, created_at, updated_at`
 	args := []any{
 		project.ExternalID,
@@ -237,6 +266,7 @@ func (m ProjectModel) Insert(project *ProjectRequest) error {
 		project.Status,
 		project.Feature,
 		pq.Array(project.Images),
+		project.Note,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -265,15 +295,15 @@ func (m ProjectModel) Insert(project *ProjectRequest) error {
 		}
 	}
 
+	// inserting clients
 	clientIDs := []int32{}
 	for _, client := range project.Clients {
 		clientIDs = append(clientIDs, *client.ClientID)
 	}
 
 	query = `
-		INSERT INTO project_client (project_internal_id, client_internal_id)
+		INSERT INTO project_client (project_internal_id, client_id)
 		VALUES `
-
 	args = []any{}
 	for i, clientID := range clientIDs {
 		if i > 0 {
@@ -296,6 +326,37 @@ func (m ProjectModel) Insert(project *ProjectRequest) error {
 	if rowsAffected == 0 {
 		return ErrZeroRowInserted
 	}
+	// end of inserting clients
+
+	// inserting assignments
+	if len(project.Assignments) > 0 {
+		query = `
+		INSERT INTO assignment (project_id, employee_id, role_id)
+		VALUES `
+		args = []any{}
+		for i, assignment := range project.Assignments {
+			if i > 0 {
+				query += ", "
+			}
+			query += fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3)
+			args = append(args, project.ExternalID, *assignment.EmployeeID, *assignment.RoleID)
+		}
+
+		result, err = tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return nil
+		}
+
+		rowsAffected, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if rowsAffected == 0 {
+			return ErrZeroRowInserted
+		}
+	}
+	// end of inserting assignments
 
 	err = tx.Commit()
 	if err != nil {
@@ -311,28 +372,52 @@ func (m ProjectModel) Get(externalID int32) (*ProjectResponse, error) {
 	}
 
 	query := `
-		SELECT p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature,
-		array_agg(
-			jsonb_build_object(
-				'id', c.internal_id, 
-				'name', c.name, 
-				'address', c.address,
-				'logo_url', c.logo_url,
-				'note', c.note,
-				'version', c.version,
-				'created_at', c.created_at,
-				'updated_at', c.updated_at
-			)
-		) as clients, p.images, p.version, p.created_at, p.updated_at 
+		SELECT p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature, p.note,
+		COALESCE(pc.clients, ARRAY[]::jsonb[]) AS clients, 
+		COALESCE(pa.assignments, ARRAY[]::jsonb[]) AS assignments,
+		p.images, p.version, p.created_at, p.updated_at 
 		FROM project p
-		LEFT JOIN project_client pc ON p.internal_id = pc.project_internal_id
-		LEFT JOIN client c ON pc.client_internal_id = c.internal_id
-		WHERE p.project_id = $1
-		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature, p.images, p.version, p.created_at, p.updated_at`
+		LEFT JOIN (
+			SELECT 
+				pc.project_internal_id,
+				array_agg(
+				 	jsonb_build_object(
+						'id', c.id, 
+						'name', c.name, 
+						'address', c.address,
+						'logo_url', c.logo_url,
+						'note', c.note,
+						'version', c.version,
+						'created_at', c.created_at,
+						'updated_at', c.updated_at
+					)
+				) AS clients
+			FROM project_client pc
+			JOIN client c ON pc.client_id = c.id
+			GROUP BY pc.project_internal_id
+		) pc ON p.internal_id = pc.project_internal_id
+		LEFT JOIN (
+			SELECT 
+				a.project_id,
+				array_agg(
+					jsonb_build_object(
+						'employee_id', u.id,
+						'employee_email', u.email,
+						'role_id', r.id,
+						'role_name', r.name
+					)
+				) AS assignments
+			FROM assignment a
+			JOIN appuser u ON a.employee_id = u.id
+			JOIN role r ON a.role_id = r.id
+			GROUP BY a.project_id
+		) pa ON p.project_id = pa.project_id		
+		WHERE p.project_id = $1`
 
 	var project ProjectResponse
 	var projectFeature string
 	var clients []string
+	var assignments []string
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -344,7 +429,9 @@ func (m ProjectModel) Get(externalID int32) (*ProjectResponse, error) {
 		&project.Name,
 		&project.Status,
 		&projectFeature,
+		&project.Note,
 		pq.Array(&clients),
+		pq.Array(&assignments),
 		pq.Array(&project.Images),
 		&project.Version,
 		&project.CreatedAt,
@@ -376,6 +463,15 @@ func (m ProjectModel) Get(externalID int32) (*ProjectResponse, error) {
 			break
 		}
 		project.Clients = append(project.Clients, pc)
+	}
+
+	for _, assignment := range assignments {
+		var pa ProjectAssignment
+		err = json.Unmarshal([]byte(assignment), &pa)
+		if err != nil {
+			return nil, errors.New("failed to unmarshal assignments associated with the project")
+		}
+		project.Assignments = append(project.Assignments, pa)
 	}
 
 	return &project, nil
@@ -423,9 +519,10 @@ func (m ProjectModel) Update(project *ProjectRequest) error {
 		}
 	}
 
+	// start of updating project_client
 	query = `
 		DELETE FROM project_client
-		WHERE project_internal_id = $1 AND client_internal_id NOT IN (`
+		WHERE project_internal_id = $1 AND client_id NOT IN (`
 	args = []any{project.InternalID}
 	for i, client := range project.Clients {
 		if i > 0 {
@@ -442,7 +539,7 @@ func (m ProjectModel) Update(project *ProjectRequest) error {
 	}
 
 	query = `
-		INSERT INTO project_client (project_internal_id, client_internal_id)
+		INSERT INTO project_client (project_internal_id, client_id)
 		VALUES `
 	args = []any{}
 	for i, client := range project.Clients {
@@ -453,12 +550,44 @@ func (m ProjectModel) Update(project *ProjectRequest) error {
 		args = append(args, project.InternalID, *client.ClientID)
 	}
 	query += `
-		ON CONFLICT (project_internal_id, client_internal_id) DO NOTHING`
+		ON CONFLICT (project_internal_id, client_id) DO NOTHING`
 
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
+	// end of updating project_client
+
+	// start of updating assignments
+	if project.Assignments != nil {
+		query = `
+			DELETE FROM assignment
+			WHERE project_id = $1`
+		args = []any{project.ExternalID}
+		_, err = tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+
+		if len(project.Assignments) != 0 {
+			query = `
+			INSERT INTO assignment (project_id, employee_id, role_id)
+			VALUES `
+			args = []any{}
+			for i, assignment := range project.Assignments {
+				if i > 0 {
+					query += ", "
+				}
+				query += fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3)
+				args = append(args, project.ExternalID, assignment.EmployeeID, assignment.RoleID)
+			}
+			_, err = tx.ExecContext(ctx, query, args...)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// end of updating assignments
 
 	err = tx.Commit()
 	if err != nil {
@@ -555,22 +684,47 @@ func ConvertToBbox(bboxStrings []string) (BoundingBox, error) {
 
 func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectResponse, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), p.project_id, p.proposal_id, p.name, p.status, p.feature,
-		array_agg(
-			jsonb_build_object(
-				'id', c.internal_id,
-				'name', c.name,
-				'address', c.address,
-				'logo_url', c.logo_url,
-				'note', c.note,
-				'version', c.version,
-				'created_at', c.created_at,
-				'updated_at', c.updated_at
-			)
-		) as clients, p.images, p.version, p.created_at, p.updated_at
+		SELECT count(*) OVER(), 
+			p.project_id, p.proposal_id, p.name, p.status, p.feature,
+			COALESCE(pc.clients, ARRAY[]::jsonb[]) AS clients, 
+			COALESCE(pa.assignments, ARRAY[]::jsonb[]) AS assignments,
+			p.images, p.version, p.created_at, p.updated_at
 		FROM project p
-		LEFT JOIN project_client pc ON p.internal_id = pc.project_internal_id
-		LEFT JOIN client c ON pc.client_internal_id = c.internal_id
+		LEFT JOIN (
+			SELECT 
+				pc.project_internal_id,
+				array_agg(
+				 	jsonb_build_object(
+						'id', c.id, 
+						'name', c.name, 
+						'address', c.address,
+						'logo_url', c.logo_url,
+						'note', c.note,
+						'version', c.version,
+						'created_at', c.created_at,
+						'updated_at', c.updated_at
+					)
+				) AS clients
+			FROM project_client pc
+			JOIN client c ON pc.client_id = c.id
+			GROUP BY pc.project_internal_id
+		) pc ON p.internal_id = pc.project_internal_id
+		LEFT JOIN (
+			SELECT 
+				a.project_id,
+				array_agg(
+					jsonb_build_object(
+						'employee_id', u.id,
+						'employee_email', u.email,
+						'role_id', r.id,
+						'role_name', r.name
+					)
+				) AS assignments
+			FROM assignment a
+			JOIN appuser u ON a.employee_id = u.id
+			JOIN role r ON a.role_id = r.id
+			GROUP BY a.project_id
+		) pa ON p.project_id = pa.project_id
 		WHERE (
 			(
 				( p.name ILIKE '%%' || $1 || '%%' and not $1 = '' )
@@ -600,8 +754,8 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 					p.internal_id IN (
 						SELECT pc.project_internal_id
 						FROM project_client pc
-						WHERE pc.client_internal_id IN (
-							SELECT c.internal_id
+						WHERE pc.client_id IN (
+							SELECT c.id
 							FROM client c
 							WHERE ( c.name ILIKE '%%' || $11 || '%%' and not $11 = '' )
 						)
@@ -611,7 +765,6 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 			OR
 			( $1 = '' and $2 = '' and $3 = FALSE and $8 = '' and $9 = '' and $10 = '' and $11 = '' )
 		)
-		GROUP BY p.internal_id, p.project_id, p.proposal_id, p.name, p.status, p.feature, p.images, p.version, p.created_at, p.updated_at
 		ORDER BY %s %s, p.project_id ASC`,
 		qs.Filters.sortColumn(), qs.Filters.sortDirection())
 
@@ -652,6 +805,7 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 		var project ProjectResponse
 		var projectFeature string
 		var clients []string
+		var assignments []string
 
 		err := rows.Scan(
 			&totalRecords,
@@ -661,6 +815,7 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 			&project.Status,
 			&projectFeature,
 			pq.Array(&clients),
+			pq.Array(&assignments),
 			pq.Array(&project.Images),
 			&project.Version,
 			&project.CreatedAt,
@@ -687,6 +842,16 @@ func (m ProjectModel) GetAll(qs ProjectQsInput, bbox BoundingBox) ([]*ProjectRes
 			}
 			project.Clients = append(project.Clients, pc)
 		}
+
+		for _, assignment := range assignments {
+			var pa ProjectAssignment
+			err = json.Unmarshal([]byte(assignment), &pa)
+			if err != nil {
+				return nil, Metadata{}, errors.New("failed to unmarshal assignments associated with the project")
+			}
+			project.Assignments = append(project.Assignments, pa)
+		}
+
 		projects = append(projects, &project)
 	}
 

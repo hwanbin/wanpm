@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/hwanbin/wanpm-api/internal/data"
+	"github.com/hwanbin/wanpm-api/internal/mailer"
 	_ "github.com/lib/pq"
 )
 
@@ -36,6 +37,20 @@ type config struct {
 		profile string
 		bucket  string
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
+	auth Auth
+}
+
+type jwtPayload struct {
+	issuer       string
+	audience     string
+	ccokieDomain string
 }
 
 type s3Actor struct {
@@ -49,6 +64,7 @@ type application struct {
 	logger  *slog.Logger
 	models  data.Models
 	s3actor s3Actor
+	mailer  mailer.Mailer
 	wg      sync.WaitGroup
 }
 
@@ -70,6 +86,24 @@ func main() {
 
 	flag.StringVar(&cfg.s3.profile, "s3-profile", "s3_profile", "S3 profile")
 	flag.StringVar(&cfg.s3.bucket, "s3-bucket", os.Getenv("S3_BUCKET_NAME"), "S3 bucket name")
+
+	// flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.wanton.app", "SMTP host")
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "mailhog_container", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 1025, "SMTP port")
+	// // flag.StringVar(&cfg.smtp.username, "smtp-username", "243d78f76457ff", "SMTP username")
+	// flag.StringVar(&cfg.smtp.password, "smtp-password", "9d9fb423e1b9b6", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Wanton <no-reply@wanton.app>", "SMTP sender")
+	/////
+	// flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	// flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
+	// flag.StringVar(&cfg.smtp.username, "smtp-username", "243d78f76457ff", "SMTP username")
+	// flag.StringVar(&cfg.smtp.password, "smtp-password", "9d9fb423e1b9b6", "SMTP password")
+	// flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Wanton <no-reply@wanton.app>", "SMTP sender")
+
+	var jwtPayload jwtPayload
+	flag.StringVar(&jwtPayload.issuer, "jwt-issuer", "wanton.app", "signing issuer")
+	flag.StringVar(&jwtPayload.audience, "jwt-audience", "wanton.app", "signing audience")
+	flag.StringVar(&jwtPayload.ccokieDomain, "cookie-domain", ".wanton.app", "cookie domain")
 
 	flag.Parse()
 
@@ -98,6 +132,17 @@ func main() {
 		logger:  logger,
 		models:  data.NewModels(db),
 		s3actor: s3actor,
+		mailer:  mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+	}
+
+	app.config.auth = Auth{
+		Issuer:        jwtPayload.issuer,
+		Audience:      jwtPayload.audience,
+		TokenExpiry:   time.Minute * 15,
+		RefreshExpiry: time.Hour * 24,
+		CookiePath:    "/",
+		CookieName:    "refresh_token",
+		CookieDomain:  jwtPayload.ccokieDomain,
 	}
 
 	err = app.serve()
