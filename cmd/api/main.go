@@ -56,7 +56,7 @@ func main() {
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 9000, "API server port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
+	flag.StringVar(&cfg.env, "env", "remote-devg", "Environment (local-dev|remote-dev|staging|production)")
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("WANTONI_DB_DSN"), "PostgreSQL DSN")
 

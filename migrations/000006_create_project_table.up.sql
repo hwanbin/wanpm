@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS project (
     status text,
     feature jsonb,
     images text[],
+    note text,
     version integer NOT NULL DEFAULT 1,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     updated_at timestamp(0) with time zone NOT NULL DEFAULT NOW()
