@@ -8,7 +8,7 @@ import (
 	"encoding/base32"
 	"time"
 
-	"github.com/hwanbin/wanpm-api/internal/validator"
+	"github.com/hwanbin/wanpm/internal/validator"
 )
 
 const (

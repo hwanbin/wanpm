@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hwanbin/wanpm-api/internal/data"
-	"github.com/hwanbin/wanpm-api/internal/validator"
+	"github.com/hwanbin/wanpm/internal/data"
+	"github.com/hwanbin/wanpm/internal/validator"
 )
 
 func (app *application) createProposalHandler(w http.ResponseWriter, r *http.Request) {

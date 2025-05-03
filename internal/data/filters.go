@@ -3,7 +3,7 @@ package data
 import (
 	"strings"
 
-	"github.com/hwanbin/wanpm-api/internal/validator"
+	"github.com/hwanbin/wanpm/internal/validator"
 )
 
 type Filters struct {

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/hwanbin/wanpm-api/internal/validator"
+	"github.com/hwanbin/wanpm/internal/validator"
 )
 
 func (app *application) readInt32IDParam(r *http.Request) (int32, error) {

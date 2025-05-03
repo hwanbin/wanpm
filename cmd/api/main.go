@@ -12,7 +12,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/hwanbin/wanpm-api/internal/data"
+	"github.com/hwanbin/wanpm/internal/data"
 	_ "github.com/lib/pq"
 )
 

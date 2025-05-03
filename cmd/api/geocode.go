@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/hwanbin/wanpm-api/internal/data"
+	"github.com/hwanbin/wanpm/internal/data"
 )
 
 func (app *application) forwardGeocodeHandler(w http.ResponseWriter, r *http.Request) {

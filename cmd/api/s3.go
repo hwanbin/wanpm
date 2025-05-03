@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/hwanbin/wanpm-api/internal/s3action"
+	"github.com/hwanbin/wanpm/internal/s3action"
 )
 
 func (app *application) createPresignedPutUrlHandler(w http.ResponseWriter, r *http.Request) {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/hwanbin/wanpm-api/internal/docs"
+	"github.com/hwanbin/wanpm/internal/docs"
 )
 
 func (app *application) routes() http.Handler {
@@ -56,6 +56,12 @@ func (app *application) routes() http.Handler {
 	router.Get("/v1/presigned-delete", app.createPresignedDeleteUrlHandler)
 
 	router.Get("/v1/list-files", app.listFilesWithPrefixHandler)
+
+	router.Post("/v1/activity", app.createActivityHandler)
+	router.Get("/activity/{id}", app.showActivityHandler)
+	router.Get("/activity", app.listActivityHandler)
+	router.Patch("/activity/{id}", app.updateActivityHandler)
+	router.Delete("/activity/{id}", app.deleteActivityHandler)
 
 	return router
 }

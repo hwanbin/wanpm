@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hwanbin/wanpm-api/internal/validator"
+	"github.com/hwanbin/wanpm/internal/validator"
 )
 
 type Proposal struct {

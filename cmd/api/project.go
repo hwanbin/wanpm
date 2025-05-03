@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/hwanbin/wanpm-api/internal/data"
-	"github.com/hwanbin/wanpm-api/internal/s3action"
-	"github.com/hwanbin/wanpm-api/internal/validator"
+	"github.com/hwanbin/wanpm/internal/data"
+	"github.com/hwanbin/wanpm/internal/s3action"
+	"github.com/hwanbin/wanpm/internal/validator"
 )
 
 func (app *application) createProjectHandler(w http.ResponseWriter, r *http.Request) {

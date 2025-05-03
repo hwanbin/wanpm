@@ -1,4 +1,4 @@
-module github.com/hwanbin/wanpm-api
+module github.com/hwanbin/wanpm
 
 go 1.23.1
 
