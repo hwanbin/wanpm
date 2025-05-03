@@ -128,6 +128,16 @@ func main() {
 		mailer:  mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
+	app.config.auth = Auth{
+		Issuer:        jwtPayload.issuer,
+		Audience:      jwtPayload.audience,
+		TokenExpiry:   time.Minute * 15,
+		RefreshExpiry: time.Hour * 24,
+		CookiePath:    "/",
+		CookieName:    "refresh_token",
+		CookieDomain:  jwtPayload.cookieDomain,
+	}
+
 	err = app.serve()
 	if err != nil {
 		logger.Error(err.Error())

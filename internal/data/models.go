@@ -12,23 +12,25 @@ var (
 )
 
 type Models struct {
-	Client   ClientModel
-	Proposal ProposalModel
-	Project  ProjectModel
-	Activity ActivityModel
-	Role     RoleModel
-	Token    TokenModel
-	User     UserModel
+	Client     ClientModel
+	Proposal   ProposalModel
+	Project    ProjectModel
+	Activity   ActivityModel
+	Role       RoleModel
+	Token      TokenModel
+	User       UserModel
+	Assignment AssignmentModel
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Client:   ClientModel{DB: db},
-		Proposal: ProposalModel{DB: db},
-		Project:  ProjectModel{DB: db},
-		Activity: ActivityModel{DB: db},
-		Role:     RoleModel{DB: db},
-		Token:    TokenModel{DB: db},
-		User:     UserModel{DB: db},
+		Client:     ClientModel{DB: db},
+		Proposal:   ProposalModel{DB: db},
+		Project:    ProjectModel{DB: db},
+		Activity:   ActivityModel{DB: db},
+		Role:       RoleModel{DB: db},
+		Token:      TokenModel{DB: db},
+		User:       UserModel{DB: db},
+		Assignment: AssignmentModel{DB: db},
 	}
 }

@@ -43,7 +43,7 @@ func (app *application) createClientHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	headers := make(http.Header)
-	headers.Set("Location", fmt.Sprintf("/v1/client/%d", client.InternalID))
+	headers.Set("Location", fmt.Sprintf("/v1/client/%d", client.ID))
 
 	err = app.writeJSON(w, http.StatusCreated, envelope{"client": client}, headers)
 	if err != nil {
@@ -90,8 +90,8 @@ func (app *application) listClientHandler(w http.ResponseWriter, r *http.Request
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 0, v)
 
-	input.Filters.Sort = app.readString(qs, "sort", "internal_id")
-	input.Filters.SortSafelist = []string{"internal_id", "name", "-internal_id", "-name"}
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
 
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)

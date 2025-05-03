@@ -11,14 +11,28 @@ import (
 )
 
 type Client struct {
-	InternalID int32     `json:"id"`
-	Name       *string   `json:"name"`
-	Address    *string   `json:"address"`
-	LogoURL    *string   `json:"logo_url"`
-	Note       *string   `json:"note"`
-	Version    int32     `json:"version"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID        int32     `json:"id"`
+	Name      *string   `json:"name"`
+	Address   *string   `json:"address"`
+	LogoURL   *string   `json:"logo_url"`
+	Note      *string   `json:"note"`
+	Version   int32     `json:"version"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type AssociatedClient struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
+
+func ValidateClientID(v *validator.Validator, associatedClients []*AssociatedClient, inputClientID int32) {
+	for _, associatedClient := range associatedClients {
+		if associatedClient.ID == inputClientID {
+			return
+		}
+	}
+	v.Check(false, "client id", "not assigned to the project")
 }
 
 func ValidateClient(v *validator.Validator, client *Client) {
@@ -44,7 +58,7 @@ func (m ClientModel) Insert(client *Client) error {
 	query := `
 		INSERT INTO client (name, address, logo_url, note)
 		VALUES ($1, $2, $3, $4)
-		RETURNING internal_id, version, created_at, updated_at`
+		RETURNING id, version, created_at, updated_at`
 
 	args := []any{client.Name, client.Address, client.LogoURL, client.Note}
 
@@ -52,29 +66,29 @@ func (m ClientModel) Insert(client *Client) error {
 	defer cancel()
 
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(
-		&client.InternalID,
+		&client.ID,
 		&client.Version,
 		&client.CreatedAt,
 		&client.UpdatedAt,
 	)
 }
 
-func (m ClientModel) Get(internal_id int32) (*Client, error) {
-	if internal_id < 1 {
+func (m ClientModel) Get(id int32) (*Client, error) {
+	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
 
 	query := `
-		SELECT internal_id, name, address, logo_url, note, version, created_at, updated_at
+		SELECT id, name, address, logo_url, note, version, created_at, updated_at
 		FROM client
-		WHERE internal_id = $1`
+		WHERE id = $1`
 	var client Client
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, internal_id).Scan(
-		&client.InternalID,
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+		&client.ID,
 		&client.Name,
 		&client.Address,
 		&client.LogoURL,
@@ -96,12 +110,53 @@ func (m ClientModel) Get(internal_id int32) (*Client, error) {
 	return &client, nil
 }
 
+func (m ClientModel) GetAllByProjectID(projectID int32) ([]*AssociatedClient, error) {
+	query := `
+		SELECT c.id, c.name
+		FROM client c
+		JOIN project_client pc ON c.id = pc.client_id
+		JOIN project p ON pc.project_internal_id = p.internal_id
+		WHERE p.project_id = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	args := []any{
+		projectID,
+	}
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var associatedClients []*AssociatedClient
+	for rows.Next() {
+		var associatedClient AssociatedClient
+
+		err := rows.Scan(
+			&associatedClient.ID,
+			&associatedClient.Name,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		associatedClients = append(associatedClients, &associatedClient)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return associatedClients, nil
+}
+
 func (m ClientModel) GetAll(name string, filters Filters) ([]*Client, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), internal_id, name, address, logo_url, note, version, created_at, updated_at
+		SELECT count(*) OVER(), id, name, address, logo_url, note, version, created_at, updated_at
 		FROM client
 		WHERE ( to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
-		ORDER BY %s %s, internal_id ASC`, filters.sortColumn(), filters.sortDirection())
+		ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
 
 	args := []any{
 		name,
@@ -124,13 +179,12 @@ func (m ClientModel) GetAll(name string, filters Filters) ([]*Client, Metadata, 
 	defer rows.Close()
 
 	totalRecords := 0
-	clients := []*Client{}
-
+	var clients []*Client
 	for rows.Next() {
 		var client Client
 		err := rows.Scan(
 			&totalRecords,
-			&client.InternalID,
+			&client.ID,
 			&client.Name,
 			&client.Address,
 			&client.LogoURL,
@@ -161,7 +215,7 @@ func (m ClientModel) GetClientByName(name string) (*Client, error) {
 	}
 
 	query := `
-		SELECT internal_id, name, address, logo_url, note, version, created_at, updated_at
+		SELECT id, name, address, logo_url, note, version, created_at, updated_at
 		FROM client
 		WHERE name = $1`
 
@@ -171,7 +225,7 @@ func (m ClientModel) GetClientByName(name string) (*Client, error) {
 	defer cancel()
 
 	err := m.DB.QueryRowContext(ctx, query, name).Scan(
-		&client.InternalID,
+		&client.ID,
 		&client.Name,
 		&client.Address,
 		&client.LogoURL,
@@ -193,11 +247,11 @@ func (m ClientModel) GetClientByName(name string) (*Client, error) {
 	return &client, nil
 }
 
-func (cm ClientModel) Update(c *Client) error {
+func (m ClientModel) Update(c *Client) error {
 	query := `
 		UPDATE client
 		SET name = $1, address = $2, logo_url = $3, note = $4
-		WHERE internal_id = $5
+		WHERE id = $5
 		RETURNING version`
 
 	args := []any{
@@ -205,28 +259,28 @@ func (cm ClientModel) Update(c *Client) error {
 		c.Address,
 		c.LogoURL,
 		c.Note,
-		c.InternalID,
+		c.ID,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	return cm.DB.QueryRowContext(ctx, query, args...).Scan(&c.Version)
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&c.Version)
 }
 
-func (cm ClientModel) Delete(internal_id int32) error {
-	if internal_id < 1 {
+func (m ClientModel) Delete(id int32) error {
+	if id < 1 {
 		return ErrRecordNotFound
 	}
 
 	query := `
 		DELETE FROM client
-		WHERE internal_id = $1`
+		WHERE id = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := cm.DB.ExecContext(ctx, query, internal_id)
+	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
