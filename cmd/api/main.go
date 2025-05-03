@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"github.com/hwanbin/wanpm/internal/mailer"
 	"log/slog"
 	"os"
 	"sync"
@@ -36,6 +37,20 @@ type config struct {
 		profile string
 		bucket  string
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
+	auth Auth
+}
+
+type jwtPayload struct {
+	issuer       string
+	audience     string
+	cookieDomain string
 }
 
 type s3Actor struct {
@@ -49,6 +64,7 @@ type application struct {
 	logger  *slog.Logger
 	models  data.Models
 	s3actor s3Actor
+	mailer  mailer.Mailer
 	wg      sync.WaitGroup
 }
 
@@ -56,7 +72,7 @@ func main() {
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 9000, "API server port")
-	flag.StringVar(&cfg.env, "env", "remote-devg", "Environment (local-dev|remote-dev|staging|production)")
+	flag.StringVar(&cfg.env, "env", "remote-dev", "Environment (local-dev|remote-dev|staging|production)")
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("WANTONI_DB_DSN"), "PostgreSQL DSN")
 
@@ -70,6 +86,17 @@ func main() {
 
 	flag.StringVar(&cfg.s3.profile, "s3-profile", "s3_profile", "S3 profile")
 	flag.StringVar(&cfg.s3.bucket, "s3-bucket", os.Getenv("S3_BUCKET_NAME"), "S3 bucket name")
+
+	flag.StringVar(&cfg.smtp.host, "smtp-host", os.Getenv("SMTP_HOST"), "SMTP host")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTP_USERNAME"), "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "SMTP password")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("SMTP_SENDER"), "SMTP sender")
+
+	var jwtPayload jwtPayload
+	flag.StringVar(&jwtPayload.issuer, "jwt-issuer", "wanton.app", "signing issuer")
+	flag.StringVar(&jwtPayload.audience, "jwt-audience", "wanton.app", "signing audience")
+	flag.StringVar(&jwtPayload.cookieDomain, "cookie-domain", ".wanton.app", "cookie domain")
 
 	flag.Parse()
 
@@ -98,6 +125,7 @@ func main() {
 		logger:  logger,
 		models:  data.NewModels(db),
 		s3actor: s3actor,
+		mailer:  mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	err = app.serve()

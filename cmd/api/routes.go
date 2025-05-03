@@ -69,5 +69,13 @@ func (app *application) routes() http.Handler {
 	router.Patch("/v1/role/{id}", app.updateRoleHandler)
 	router.Delete("/v1/role/{id}", app.deleteRoleHandler)
 
+	router.Post("/v1/user", app.registerUserHandler)
+	router.Put("/v1/user/activate", app.activateUserHandler)
+	router.Post("/v1/user/authenticate", app.authenticateUserHandler)
+	router.Get("/v1/user/refresh", app.refreshTokenHandler)
+	router.Get("/v1/user/logout", app.logoutHandler)
+
+	router.Get("/v1/user/{id}", app.getUserHandler)
+	router.Get("/v1/user", app.listUsersHandler)
 	return router
 }
