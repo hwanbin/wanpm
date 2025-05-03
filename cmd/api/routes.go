@@ -58,10 +58,16 @@ func (app *application) routes() http.Handler {
 	router.Get("/v1/list-files", app.listFilesWithPrefixHandler)
 
 	router.Post("/v1/activity", app.createActivityHandler)
-	router.Get("/activity/{id}", app.showActivityHandler)
-	router.Get("/activity", app.listActivityHandler)
-	router.Patch("/activity/{id}", app.updateActivityHandler)
-	router.Delete("/activity/{id}", app.deleteActivityHandler)
+	router.Get("/v1/activity/{id}", app.showActivityHandler)
+	router.Get("/v1/activity", app.listActivityHandler)
+	router.Patch("/v1/activity/{id}", app.updateActivityHandler)
+	router.Delete("/v1/activity/{id}", app.deleteActivityHandler)
+
+	router.Post("/v1/role", app.createRoleHandler)
+	router.Get("/v1/role/{id}", app.showRoleHandler)
+	router.Get("/v1/role", app.listRoleHandler)
+	router.Patch("/v1/role/{id}", app.updateRoleHandler)
+	router.Delete("/v1/role/{id}", app.deleteRoleHandler)
 
 	return router
 }

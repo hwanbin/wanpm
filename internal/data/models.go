@@ -16,6 +16,7 @@ type Models struct {
 	Proposal ProposalModel
 	Project  ProjectModel
 	Activity ActivityModel
+	Role     RoleModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -24,5 +25,6 @@ func NewModels(db *sql.DB) Models {
 		Proposal: ProposalModel{DB: db},
 		Project:  ProjectModel{DB: db},
 		Activity: ActivityModel{DB: db},
+		Role:     RoleModel{DB: db},
 	}
 }
