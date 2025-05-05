@@ -13,6 +13,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/lib/pq v1.10.9
 	github.com/nrednav/cuid2 v1.0.1
+	github.com/oklog/ulid/v2 v2.1.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/time v0.6.0
 )

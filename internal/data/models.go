@@ -20,6 +20,7 @@ type Models struct {
 	Token      TokenModel
 	User       UserModel
 	Assignment AssignmentModel
+	Timesheet  TimesheetModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -32,5 +33,6 @@ func NewModels(db *sql.DB) Models {
 		Token:      TokenModel{DB: db},
 		User:       UserModel{DB: db},
 		Assignment: AssignmentModel{DB: db},
+		Timesheet:  TimesheetModel{DB: db},
 	}
 }

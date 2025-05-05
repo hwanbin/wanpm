@@ -82,5 +82,11 @@ func (app *application) routes() http.Handler {
 	router.Get("/v1/user/{id}", app.getUserHandler)
 	router.Get("/v1/user", app.listUsersHandler)
 
+	router.Post("/v1/timesheet", app.createTimesheetHandler)
+	router.Get("/v1/timesheet/{id}", app.showTimesheetHandler)
+	router.Get("/v1/timesheet", app.listTimesheetHandler)
+	router.Patch("/v1/timesheet/{id}", app.updateTimesheetHandler)
+	router.Delete("/v1/timesheet/{id}", app.deleteTimesheetHandler)
+	
 	return router
 }
