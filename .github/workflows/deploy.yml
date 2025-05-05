@@ -71,7 +71,7 @@ jobs:
         run: docker rmi ${{ env.DOCKER_IMAGE }}:latest
       - name: Authenticate to GHCR
         run: |
-          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ env.ACTOR }} --pasword-stdin
+          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ env.ACTOR }} --password-stdin
       - name: Pull Docker Image
         run: docker pull ${{ env.DOCKER_IMAGE }}:latest
       - name: Run Docker Container
