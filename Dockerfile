@@ -9,4 +9,4 @@ FROM gcr.io/distroless/base-debian12
 
 WORKDIR /bin
 COPY --from=builder /build/app /bin/app
-CMD [ "/bin/app" ]
+ENTRYPOINT [ "/bin/app" ]
