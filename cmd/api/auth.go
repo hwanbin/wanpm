@@ -39,7 +39,7 @@ type Claims struct {
 }
 
 func readPrivateKey() (*rsa.PrivateKey, error) {
-	privateKeyFile, err := os.Open("private_key.pem")
+	privateKeyFile, err := os.Open("/keys/private_key.pem")
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func readPrivateKey() (*rsa.PrivateKey, error) {
 }
 
 func readPublicKey() (*rsa.PublicKey, error) {
-	publicKeyFile, err := os.Open("public_key.pem")
+	publicKeyFile, err := os.Open("/keys/public_key.pem")
 	if err != nil {
 		return nil, err
 	}
