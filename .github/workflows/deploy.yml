@@ -75,12 +75,4 @@ jobs:
       - name: Pull Docker Image
         run: docker pull ${{ env.DOCKER_IMAGE }}:latest
       - name: Run Docker Container
-        run: docker run -d -p 9000:9000 \
-          -e MAPBOX_GEOCODE_TOKEN=$MAPBOX_GEOCODE_TOKEN \
-          -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
-          -e WANTONI_DB_DSN=$WANTONI_DB_DSN \
-          -v ~/.aws:/root/.aws \
-          -v ~/.keys:/keys:ro \
-          --name ${{ env.NAME }} \
-          --restart unless-stopped \
-          ${{ env.DOCKER_IMAGE }}:latest
+        run: docker run -d -p 9000:9000 -e MAPBOX_GEOCODE_TOKEN=$MAPBOX_GEOCODE_TOKEN -e S3_BUCKET_NAME=$S3_BUCKET_NAME -e WANTONI_DB_DSN=$WANTONI_DB_DSN -v ~/.aws:/root/.aws -v ~/.keys:/keys:ro --name ${{ env.NAME }} --restart unless-stopped ${{ env.DOCKER_IMAGE }}:latest
